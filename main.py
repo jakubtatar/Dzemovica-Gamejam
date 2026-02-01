@@ -1,6 +1,31 @@
 import pygame
+import sys
+import os
 from player import Player
 from camera import Camera
+
+# Function to load a simple map from a text file
+def load_map(filename, tile_size):
+    tiles = []
+    collidable_tiles = []
+    with open(filename, "r") as file:
+        for row_index, line in enumerate(file):
+            for col_index, char in enumerate(line.strip()):
+                x = col_index * tile_size
+                y = row_index * tile_size
+                rect = pygame.Rect(x, y, tile_size, tile_size)
+                
+                if char == "1":
+                    tiles.append((rect, "1"))  # iba vizuálne, bez kolízie
+                elif char == "2":
+                    tiles.append((rect, "2"))
+                    collidable_tiles.append(rect)  # iba 2-ky budú kolidovať
+                elif char == "0":
+                    tiles.append((rect, "0"))  # vizuálne, bez kolízie
+    return tiles, collidable_tiles
+
+
+
 
 # Initialize Pygame
 pygame.init()
@@ -17,18 +42,18 @@ clock = pygame.time.Clock()
 player = Player(x=50, y=50, width=50, height=50, color=(0, 128, 255))
 camera = Camera(screen_width, screen_height)
 
-# World objects (rectangles in the world)
-world_objects = [
-    pygame.Rect(0, 0, 2000, 50),        # top wall
-    pygame.Rect(0, 1950, 2000, 50),     # bottom wall
-    pygame.Rect(0, 0, 50, 2000),        # left wall
-    pygame.Rect(1950, 0, 50, 2000),     # right wall
+# Map settings
+TILE_SIZE = 50
+walls, collidable_walls = load_map(r".\Resources\Bitmaps\testmap.txt", TILE_SIZE)
 
-    pygame.Rect(300, 300, 100, 100),
-    pygame.Rect(700, 500, 150, 80),
-    pygame.Rect(1200, 800, 200, 120),
-    pygame.Rect(1600, 300, 80, 200),
-]
+# Load tile images
+tile1_img = pygame.image.load(r"Resources/Images/Image_Plot1.png").convert_alpha()
+tile2_img = pygame.image.load(r"Resources/Images/Image_Plot2.png").convert_alpha()
+
+# Optionally scale to TILE_SIZE
+tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
+tile2_img = pygame.transform.scale(tile2_img, (TILE_SIZE, TILE_SIZE))
+
 
 # Main loop
 is_running = True
@@ -38,19 +63,19 @@ while is_running:
         if event.type == pygame.QUIT:
             is_running = False
 
-    player.handle_keys(2000, 2000)
+    # Update player and camera
+    player.handle_keys_with_collision(2000, 2000, collidable_walls)
     camera.update(player)
 
-    # Update the display
+    # CLEAR SCREEN FIRST
     screen.fill((135, 206, 235))
 
-    # Draw world objects using camera
-    for obj in world_objects:
-        pygame.draw.rect(
-            screen,
-            (60, 60, 60),
-            camera.apply(obj)
-        )
+    # Draw tiles from the bitmapmap
+    for rect, tile_type in walls:
+        if tile_type == "1":
+            screen.blit(tile1_img, camera.apply(rect))
+        elif tile_type == "0":
+            screen.blit(tile2_img, camera.apply(rect))
 
     # Draw player
     pygame.draw.rect(
@@ -59,8 +84,10 @@ while is_running:
         camera.apply(player.rect)
     )
 
+
     pygame.display.flip()
-    clock.tick(60) # Limit to 60 FPS
+    clock.tick(60)
+
 
 # Quit Pygame
 pygame.quit()

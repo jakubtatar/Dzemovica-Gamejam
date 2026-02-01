@@ -12,26 +12,37 @@ class Player:
         self.speed = self.player_speed
 
     # Handle key presses for movement with screen collision detection
-    def handle_keys(self, screen_width, screen_height):
+    def handle_keys_with_collision(self, screen_width, screen_height, collidable_walls):
         keys = pygame.key.get_pressed()
+        dx, dy = 0, 0
 
-        #Detect diagonal movement
-        moving_x = (keys[pygame.K_LEFT] or keys[pygame.K_a]) or (keys[pygame.K_RIGHT] or keys[pygame.K_d])
-        moving_y = (keys[pygame.K_UP] or keys[pygame.K_w]) or (keys[pygame.K_DOWN] or keys[pygame.K_s])
-
-        if moving_x and moving_y:
-            current_speed = self.player_speed_diagonal  # diagonal speed
-        else:
-            current_speed = self.speed  # normal speed
-
+        # --- pôvodný pohyb ---
         if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and self.rect.x > 0:
-            self.rect.x -= current_speed  # CHANGED: use current_speed
+            dx -= self.speed
         if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and self.rect.right < screen_width:
-            self.rect.x += current_speed  # CHANGED
+            dx += self.speed
         if (keys[pygame.K_UP] or keys[pygame.K_w]) and self.rect.y > 0:
-            self.rect.y -= current_speed  # CHANGED
+            dy -= self.speed
         if (keys[pygame.K_DOWN] or keys[pygame.K_s]) and self.rect.bottom < screen_height:
-            self.rect.y += current_speed  # CHANGED
+            dy += self.speed
+
+        # --- pohyb a kontrola kolízií ---
+        self.rect.x += dx
+        for wall in collidable_walls:
+            if self.rect.colliderect(wall):
+                if dx > 0:  # pohyb doprava
+                    self.rect.right = wall.left
+                elif dx < 0:  # pohyb doľava
+                    self.rect.left = wall.right
+
+        self.rect.y += dy
+        for wall in collidable_walls:
+            if self.rect.colliderect(wall):
+                if dy > 0:  # pohyb dole
+                    self.rect.bottom = wall.top
+                elif dy < 0:  # pohyb hore
+                    self.rect.top = wall.bottom
+
 
     # Draw the player on the given surface
     def draw(self, surface):
