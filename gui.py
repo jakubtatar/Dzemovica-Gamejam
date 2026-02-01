@@ -46,7 +46,9 @@ class GUI:
             elif event.key == pygame.K_q:
                 self.selected_index = (self.selected_index - 1) % len(self.inventory)
 
-    
+    def get_selected_item(self):
+        return self.inventory[self.selected_index]
+
     def draw_health(self):
         health = getattr(self.player, "health", 100)
         self.draw_outlined_text(
@@ -63,15 +65,12 @@ class GUI:
             (255, 215, 0)
         )
 
-    def draw_time(self):
-        elapsed = int(time.time() - self.start_time)
-        minutes = elapsed // 60
-        seconds = elapsed % 60
-
+    def draw_day(self):
+        day = getattr(self.player, "day", 1)
         self.draw_outlined_text(
-            f"Time: {minutes:02d}:{seconds:02d}",
-            600, 10,
-            (255, 255, 0)
+            f"Day: {day}",
+            10, 70,
+            (0, 255, 0)
         )
 
     def draw_inventory(self):
@@ -100,5 +99,5 @@ class GUI:
     def draw(self):
         self.draw_health()
         self.draw_money()
-        self.draw_time()
+        self.draw_day()
         self.draw_inventory()

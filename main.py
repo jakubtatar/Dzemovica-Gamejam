@@ -4,6 +4,7 @@ import os
 from player import Player
 from camera import Camera
 from gui import GUI
+from fade import Fade
 
 # Function to load a simple map from a text file
 def load_map(filename, tile_size):
@@ -62,6 +63,10 @@ pygame.display.set_caption("Kto druhemu jamu kope...")
 # Set up clock for controlling FPS
 clock = pygame.time.Clock()
 
+# Fade effect
+fade = Fade(screen, speed=8)
+
+
 # Create game objects
 player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))
 camera = Camera(screen_width, screen_height)
@@ -102,6 +107,12 @@ while is_running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
+
+        # We get selected item on mouse click
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  
+                selected_item = gui.get_selected_item()
+                print(f"Used item: {selected_item}")
 
         gui.handle_input(event)
 
