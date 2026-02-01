@@ -38,17 +38,17 @@ class GUI:
 
         self.screen.blit(text_surf, rect)
 
-    
+    # Vyberanie itemov v inventari pomocou ciselnych klaves
     def handle_input(self, event):
         if event.type == pygame.KEYDOWN:
            
-            if event.key == pygame.K_1 or event.key == pygame.K_KP1:
+            if event.key == pygame.K_1 or event.key == pygame.K_KP1: # 1 key or numpad 1
                 self.selected_index = 0
-            elif event.key == pygame.K_2 or event.key == pygame.K_KP2:
+            elif event.key == pygame.K_2 or event.key == pygame.K_KP2: # 2 key or numpad 2
                 self.selected_index = 1
-            elif event.key == pygame.K_3 or event.key == pygame.K_KP3:
+            elif event.key == pygame.K_3 or event.key == pygame.K_KP3: # 3 key or numpad 3
                 self.selected_index = 2
-            elif event.key == pygame.K_4 or event.key == pygame.K_KP4:
+            elif event.key == pygame.K_4 or event.key == pygame.K_KP4: # 4 key or numpad 4
                 self.selected_index = 3
 
     
