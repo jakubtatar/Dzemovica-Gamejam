@@ -25,8 +25,6 @@ def load_map(filename, tile_size):
     return tiles, collidable_tiles
 
 
-
-
 # Initialize Pygame
 pygame.init()
 
@@ -44,7 +42,7 @@ camera = Camera(screen_width, screen_height)
 
 # Map settings
 TILE_SIZE = 50
-walls, collidable_walls = load_map(r".\Resources\Bitmaps\testmap.txt", TILE_SIZE)
+walls, collidable_walls = load_map(r".\Resources\Bitmaps\cmitermap.txt", TILE_SIZE)
 
 # Load tile images
 tile1_img = pygame.image.load(r"Resources/Images/Image_Plot1.png").convert_alpha()
@@ -64,7 +62,7 @@ while is_running:
             is_running = False
 
     # Update player and camera
-    player.handle_keys_with_collision(2000, 2000, collidable_walls)
+    player.handle_keys_with_collision(4000, 4000, collidable_walls)
     camera.update(player)
 
     # CLEAR SCREEN FIRST
