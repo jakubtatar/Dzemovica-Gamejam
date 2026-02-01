@@ -141,10 +141,8 @@ while is_running:
     )
 
     gui.draw()
-
     pygame.display.flip()
     clock.tick(60)
-
 
 # Quit Pygame
 pygame.quit()
