@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pygame Map Editor (Visual)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; overflow: hidden; background: #1e1e1e;}
+
+        /* --- LEFT PANEL (TEXT EDITOR) --- */
+        #editor-pane {
+            width: 35%;
+            height: 100%;
+            background: #252526;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #333;
+        }
+
+        .header {
+            padding: 15px;
+            background: #333333;
+            color: #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+        }
+
+        .btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 2px;
+        }
+        .btn:hover { background: #1177bb; }
+
+        textarea {
+            flex-grow: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            padding: 15px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 20px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        /* --- RIGHT PANEL (VISUAL PREVIEW) --- */
+        #preview-pane {
+            width: 65%;
+            height: 100%;
+            background: #083214; /* Matches your screen.fill((8, 50, 20)) */
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px;
+            
+            /* Pixel Art rendering crispness */
+            image-rendering: pixelated; 
+        }
+
+        #grid {
+            display: grid;
+            /* No gap, so images merge perfectly like in game */
+            gap: 0px; 
+            border: 4px solid #000;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* --- TILES --- */
+        .tile {
+            width: 50px;  /* Matches your TILE_SIZE = 50 */
+            height: 50px;
+            background-size: cover;
+            background-repeat: no-repeat;
+            position: relative;
+            
+            /* Fallback text if image missing */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgba(255,255,255,0.2);
+            font-size: 10px;
+        }
+
+        /* --- IMAGE MAPPINGS --- */
+        /* We use the exact relative paths to your Resources folder */
+        
+        /* 0: Floor (Plot2) */
+        .tile-0 { background-image: url('Resources/Images/Image_Plot2.png'); }
+
+        /* 1: Floor (Plot1) */
+        .tile-1 { background-image: url('Resources/Images/Image_Plot1.png'); }
+
+        /* 3: Hedge Front */
+        .tile-3 { background-image: url('Resources/Images/Image_HedgeFront.png'); }
+
+        /* 4: Hedge Top Front */
+        .tile-4 { background-image: url('Resources/Images/Image_HedgeTopFront.png'); }
+
+        /* 5: Hedge Corner RD */
+        .tile-5 { background-image: url('Resources/Images/Image_HedgeCornerRD.png'); }
+
+        /* 6: Hedge Corner LD */
+        .tile-6 { background-image: url('Resources/Images/Image_HedgeCornerLD.png'); }
+
+        /* 7: Hedge Top Wall */
+        .tile-7 { background-image: url('Resources/Images/Image_HedgeTopWall.png'); }
+
+        /* 8: Hedge Corner LT */
+        .tile-8 { background-image: url('Resources/Images/Image_HedgeCornerLT.png'); }
+
+        /* 9: Hedge Corner RT */
+        .tile-9 { background-image: url('Resources/Images/Image_HedgeCornerRT.png'); }
+
+        /* 2: Invisible Collidable Wall (No image in your code, so we give it a red tint) */
+        .tile-2 { 
+            background-color: rgba(255, 0, 0, 0.3); 
+            border: 1px dashed red;
+        }
+
+        /* Unknown / Error */
+        .tile-unknown { background-color: rgba(0,0,0,0.5); }
+
+    </style>
+</head>
+<body>
+
+    <div id="editor-pane">
+        <div class="header">
+            <span>Map Editor</span>
+            <button class="btn" onclick="copyToClipboard()">Copy to Clipboard</button>
+        </div>
+        <textarea id="mapInput" spellcheck="false" placeholder="Type map here...">844449
+300003
+301103
+301103
+300003
+633335</textarea>
+    </div>
+
+    <div id="preview-pane">
+        <div id="grid"></div>
+    </div>
+
+    <script>
+        const textarea = document.getElementById('mapInput');
+        const grid = document.getElementById('grid');
+
+        // Render function
+        function renderMap() {
+            const rawText = textarea.value;
+            const rows = rawText.split('\n');
+            
+            // Calculate grid dimensions
+            const rowCount = rows.length;
+            let maxColCount = 0;
+            rows.forEach(r => maxColCount = Math.max(maxColCount, r.trim().length));
+
+            // Set grid CSS
+            // TILE_SIZE is 50px in your python, so we use 50px here
+            grid.style.gridTemplateColumns = `repeat(${maxColCount}, 50px)`;
+            grid.style.gridTemplateRows = `repeat(${rowCount}, 50px)`;
+            grid.innerHTML = '';
+
+            rows.forEach((line) => {
+                const chars = line.trim().split('');
+                for (let i = 0; i < maxColCount; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('tile');
+                    
+                    if (i < chars.length) {
+                        const char = chars[i];
+                        if (char >= '0' && char <= '9') {
+                            cell.classList.add(`tile-${char}`);
+                        } else {
+                            cell.classList.add('tile-unknown');
+                        }
+                    }
+                    grid.appendChild(cell);
+                }
+            });
+        }
+
+        function copyToClipboard() {
+            textarea.select();
+            document.execCommand('copy');
+            // Brief visual feedback
+            const btn = document.querySelector('.btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Copied!";
+            setTimeout(() => btn.innerText = originalText, 1000);
+        }
+
+        textarea.addEventListener('input', renderMap);
+        window.addEventListener('load', renderMap);
+    </script>
+</body>
+</html>
