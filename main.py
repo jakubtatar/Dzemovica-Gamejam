@@ -3,6 +3,7 @@ import sys
 import os
 from player import Player
 from camera import Camera
+from gui import GUI
 
 # Function to load a simple map from a text file
 def load_map(filename, tile_size):
@@ -49,6 +50,10 @@ def load_map(filename, tile_size):
 # Initialize Pygame
 pygame.init()
 
+# Font initialization (required for GUI)
+pygame.font.init()
+font = pygame.font.Font(r".\Resources\Fonts\upheavtt.ttf", 30)
+
 # Set up display
 screen_width, screen_height = 800, 600
 screen = pygame.display.set_mode((screen_width, screen_height))
@@ -60,6 +65,7 @@ clock = pygame.time.Clock()
 # Create game objects
 player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))
 camera = Camera(screen_width, screen_height)
+gui = GUI(screen, player)
 
 # Map settings
 TILE_SIZE = 50
@@ -97,6 +103,8 @@ while is_running:
         if event.type == pygame.QUIT:
             is_running = False
 
+        gui.handle_input(event)
+
     # Update player and camera
     player.handle_keys_with_collision(4000, 4000, collidable_walls)
     camera.update(player)
@@ -132,6 +140,7 @@ while is_running:
         camera.apply(player.rect)
     )
 
+    gui.draw()
 
     pygame.display.flip()
     clock.tick(60)
