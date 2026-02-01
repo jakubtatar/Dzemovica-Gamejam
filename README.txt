@@ -4,3 +4,5 @@ Ahojte vsetci spoludeveloperi!
 
 za 15 min start
 Ahoj beke
+
+Ahoj Kubo a Beke
