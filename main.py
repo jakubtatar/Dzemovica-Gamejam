@@ -111,9 +111,7 @@ hedgeLT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLT.png").con
 hedgetopwall_img = pygame.image.load(r"Resources/Images/Image_HedgeTopWall.png").convert_alpha()
 
 # Load gravestone images
-# Dolezite: Nacitame to pred skalovanim ostatnych veci
 grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
-# Nacitame novy otvoreny obrazok jamy
 grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
 
 
@@ -137,10 +135,12 @@ hedgetopwall_img = pygame.transform.scale(hedgetopwall_img, (TILE_SIZE, TILE_SIZ
 grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
 grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
 
+# Load Well Object
+object_well_img = pygame.image.load(r"Resources/Objects/Object_Well.png").convert_alpha()
+object_well_img = pygame.transform.scale(object_well_img, (TILE_SIZE * 4, TILE_SIZE * 4)) 
 
 # # Create graves (20 graves next to each other)
 graves = []
-# grave_pits bude zoznam slovnikov, kde kazdy obsahuje 'rect' a 'state'
 grave_pits = [] 
 
 start_x = 200
@@ -150,16 +150,19 @@ spacing = TILE_SIZE
 for i in range(20):
     x = start_x + i * spacing
     y = start_y
-    # Grave uz nepotrebuje closed_img argument
     graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
-    # Pridavame stav 'closed'
     grave_pits.append({'rect': pygame.Rect(x, y + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed'})
+
+# Define the well's position and size in world coordinates (x400, y800)
+# Rect pre studnu, velkost 4x4 tiles (200x200px)
+well_rect = pygame.Rect(400, 800, TILE_SIZE * 4, TILE_SIZE * 4) 
+collidable_walls.append(well_rect) # Pridame studnu do kolizii
+
 
 # Main loop
 is_running = True
 
 while is_running:
-    # Ziskame selected_item vzdy na zaciatku loopu
     selected_item = gui.get_selected_item()
     
     for event in pygame.event.get():
@@ -172,12 +175,10 @@ while is_running:
                     gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE
                     gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE
                     graves.append(Grave(gx, gy, TILE_SIZE, gravestone_images))
-                    # Nova jama ma pociatocny stav 'closed'
                     grave_pits.append({'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed'})
                     print(f"Hrob vytvorený na {gx}, {gy}")
             
             elif event.button == 3: # Right click (otvaranie)
-                # Zmen vsetky jamy na stav 'opened'
                 for pit in grave_pits:
                     pit['state'] = 'opened'
                 print("Vsetky jamy otvorene!")
@@ -214,7 +215,7 @@ while is_running:
         elif tile_type == "9":
             screen.blit(hedgeRT_img, camera.apply(rect))
 
-    # Draw grave pits (Vykreslujeme prve, aby boli pod hrobmi)
+    # Draw closed grave pits (Vykreslujeme prve, aby boli pod hrobmi)
     for pit in grave_pits:
         image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
         screen.blit(image_to_draw, camera.apply(pit['rect']))
@@ -222,6 +223,10 @@ while is_running:
      # Draw graves
     for grave in graves:
         grave.draw(screen, camera)
+        
+    # Draw the well object (Posunieme Y suradnicu blitovania o vysku objektu, aby sedel na 800y)
+    screen.blit(object_well_img, camera.apply(well_rect).move(0, well_rect.height - object_well_img.get_height()))
+
 
     # Draw player
     pygame.draw.rect(
