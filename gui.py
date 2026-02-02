@@ -14,7 +14,6 @@ class GUI:
         self.inventory = ["[1] Sword", "[2] Shovel", "[3] Holy water", "[4] Cross"]
         self.selected_index = 0
 
-    
     def draw_outlined_text(
         self,
         text,
@@ -69,15 +68,28 @@ class GUI:
             10, 40,
             (255, 215, 0)
         )
-
+        
     def draw_day(self):
-        day = getattr(self.player, "day", "Monday")
+        # 1. Zoznam názvov dní
+        dni = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        
+        elapsed_seconds = int(time.time() - self.start_time)
+        
+        # Dlzka dna v sekundach
+        sekundy_na_den = 60
+        
+        
+        # Vyberani dna
+        index_dna = (elapsed_seconds // sekundy_na_den) % len(dni)
+        aktualny_nazov = dni[index_dna]
+
+        # Vykreslenie na obrazovku
         self.draw_outlined_text(
-            f"Day: {day}",
+            f"Day: {aktualny_nazov}",
             10, 70,
             (0, 255, 0)
         )
-
+   
     def draw_inventory(self):
         screen_width, screen_height = self.screen.get_size()
         padding = 10
