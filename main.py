@@ -5,6 +5,7 @@ from player import Player
 from camera import Camera
 from gui import GUI
 from fade import Fade
+from grave import Grave
 
 # Function to load a simple map from a text file
 def load_map(filename, tile_size):
@@ -47,6 +48,23 @@ def load_map(filename, tile_size):
                     collidable_tiles.append(rect)
     return tiles, collidable_tiles
 
+# Load images form folder functiuon
+def load_images_from_folder(folder_path, tile_size):
+    images = {}
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".png"):
+            key = filename.split("_")[-1].split(".")[0]  
+            # Gravestone_1.png = "1"
+
+            image = pygame.image.load(
+                os.path.join(folder_path, filename)
+            ).convert_alpha()
+
+            image = pygame.transform.scale(image, (tile_size, tile_size))
+            images[key] = image
+
+    return images
+
 
 # Initialize Pygame
 pygame.init()
@@ -67,11 +85,11 @@ clock = pygame.time.Clock()
 # Fade effect
 fade = Fade(screen, speed=8)
 
-
 # Create game objects
 player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))
 camera = Camera(screen_width, screen_height)
 gui = GUI(screen, player)
+
 
 # Map settings
 TILE_SIZE = 50
@@ -89,6 +107,24 @@ hedgeLD_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLD.png").con
 hedgeRT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerRT.png").convert_alpha()
 hedgeLT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLT.png").convert_alpha()
 hedgetopwall_img = pygame.image.load(r"Resources/Images/Image_HedgeTopWall.png").convert_alpha()
+
+# Load gravestone images
+gravestone_images = load_images_from_folder(
+    "Resources/Gravestones",
+    TILE_SIZE
+)
+
+# # Create graves (20 graves next to each other)
+# graves = []
+
+# start_x = 200
+# start_y = 500
+# spacing = TILE_SIZE
+
+# for i in range(20):
+#     x = start_x + i * spacing
+#     y = start_y
+#     graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
 
 # Optionally scale to TILE_SIZE
 tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
@@ -118,6 +154,7 @@ while is_running:
 
         gui.handle_input(event)
 
+
     # Update player and camera
     player.handle_keys_with_collision(4000, 4000, collidable_walls)
     camera.update(player)
@@ -145,6 +182,10 @@ while is_running:
             screen.blit(hedgeLT_img, camera.apply(rect))
         elif tile_type == "9":
             screen.blit(hedgeRT_img, camera.apply(rect))
+
+    # # Draw graves
+    # for grave in graves:
+    #     grave.draw(screen, camera)
 
     # Draw player
     pygame.draw.rect(
