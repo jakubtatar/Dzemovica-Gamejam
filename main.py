@@ -53,15 +53,17 @@ def load_images_from_folder(folder_path, tile_size):
     images = {}
     for filename in os.listdir(folder_path):
         if filename.endswith(".png"):
+            # Oprava: Ziskame kluc ako string ("1", "6", atd.)
             key = filename.split("_")[-1].split(".")[0]  
-            # Gravestone_1.png = "1"
 
             image = pygame.image.load(
                 os.path.join(folder_path, filename)
             ).convert_alpha()
 
-            image = pygame.transform.scale(image, (tile_size, tile_size))
-            images[key] = image
+            # Ak je kluc "6", vyska bude 2-nasobna (100px)
+            current_height = tile_size * 2 if key == "6" else tile_size
+            image = pygame.transform.scale(image, (tile_size, current_height))
+            images[key] = image # Kluc je uz string a je hashevatelny
 
     return images
 
@@ -109,22 +111,16 @@ hedgeLT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLT.png").con
 hedgetopwall_img = pygame.image.load(r"Resources/Images/Image_HedgeTopWall.png").convert_alpha()
 
 # Load gravestone images
+# Dolezite: Nacitame to pred skalovanim ostatnych veci
+grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
+# Nacitame novy otvoreny obrazok jamy
+grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
+
+
 gravestone_images = load_images_from_folder(
     "Resources/Gravestones",
     TILE_SIZE
 )
-
-# # Create graves (20 graves next to each other)
-graves = []
-
-start_x = 200
-start_y = 500
-spacing = TILE_SIZE
-
-for i in range(20):
-    x = start_x + i * spacing
-    y = start_y
-    graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
 
 # Optionally scale to TILE_SIZE
 tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
@@ -137,29 +133,55 @@ hedgeLT_img = pygame.transform.scale(hedgeLT_img, (TILE_SIZE, TILE_SIZE))
 hedgetopfront_img = pygame.transform.scale(hedgetopfront_img, (TILE_SIZE, TILE_SIZE))
 hedgetopwall_img = pygame.transform.scale(hedgetopwall_img, (TILE_SIZE, TILE_SIZE))
 
+# Jamy (closed/opened img) budu mat vysku 2-nasobok TILE_SIZE (100px)
+grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
+grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
+
+
+# # Create graves (20 graves next to each other)
+graves = []
+# grave_pits bude zoznam slovnikov, kde kazdy obsahuje 'rect' a 'state'
+grave_pits = [] 
+
+start_x = 200
+start_y = 500
+spacing = TILE_SIZE
+
+for i in range(20):
+    x = start_x + i * spacing
+    y = start_y
+    # Grave uz nepotrebuje closed_img argument
+    graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
+    # Pridavame stav 'closed'
+    grave_pits.append({'rect': pygame.Rect(x, y + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed'})
+
 # Main loop
 is_running = True
 
 while is_running:
+    # Ziskame selected_item vzdy na zaciatku loopu
+    selected_item = gui.get_selected_item()
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
 
-        # We get selected item on mouse click
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # ľavý klik
-                selected_item = gui.get_selected_item()
+            if event.button == 1:  # Left click (kopanie)
+                if selected_item == "Shovel":
+                    gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE
+                    gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE
+                    graves.append(Grave(gx, gy, TILE_SIZE, gravestone_images))
+                    # Nova jama ma pociatocny stav 'closed'
+                    grave_pits.append({'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed'})
+                    print(f"Hrob vytvorený na {gx}, {gy}")
+            
+            elif event.button == 3: # Right click (otvaranie)
+                # Zmen vsetky jamy na stav 'opened'
+                for pit in grave_pits:
+                    pit['state'] = 'opened'
+                print("Vsetky jamy otvorene!")
 
-            if selected_item == "Shovel":
-                # zarovnanie na grid
-                x = (player.rect.centerx // TILE_SIZE) * TILE_SIZE
-                y = (player.rect.bottom // TILE_SIZE) * TILE_SIZE
-
-            graves.append(
-                Grave(x, y, TILE_SIZE, gravestone_images)
-            )
-
-            print("New grave created at:", x, y)
 
         gui.handle_input(event)
 
@@ -191,6 +213,11 @@ while is_running:
             screen.blit(hedgeLT_img, camera.apply(rect))
         elif tile_type == "9":
             screen.blit(hedgeRT_img, camera.apply(rect))
+
+    # Draw grave pits (Vykreslujeme prve, aby boli pod hrobmi)
+    for pit in grave_pits:
+        image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
+        screen.blit(image_to_draw, camera.apply(pit['rect']))
 
      # Draw graves
     for grave in graves:

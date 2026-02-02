@@ -2,23 +2,20 @@ import pygame
 import random
 
 class Grave:
-    def __init__(self, x, y, size, gravestone_images):
-        # náhodný typ hrobu (1–6)
-        self.type = str(random.randint(1, 6))
-
-        width = size
-        height = size
-
-        # AK JE Gravestone_6 → dvojnásobná výška
-        if self.type == "6":
-            height = size * 2
-            y -= size  # posun hore, aby spodok ostal na zemi
-
-        self.rect = pygame.Rect(x, y, width, height)
-
-        # obrázok podľa typu
-        self.image = gravestone_images[self.type]
-        self.image = pygame.transform.scale(self.image, (width, height))
+    def __init__(self, x, y, tile_size, images):
+        # self.rect sluzi na logicku poziciu (miesto v gride)
+        self.rect = pygame.Rect(x, y, tile_size, tile_size)
+        self.images = images
+        # Vyberie nahodny obrazok a ulozi si ho
+        self.type = random.choice(list(images.keys()))
+        self.image = images[self.type]
 
     def draw(self, screen, camera):
-        screen.blit(self.image, camera.apply(self.rect))
+        # Vypocet finalnej pozicie y pre blit:
+        # Actual_Y = Logicke_Y + Vyska_Logickeho_Rectu - Vyska_Obrazka
+        # Ak je obrazok 50x50, 50 + 50 - 50 = 50 (ziaden posun)
+        # Ak je obrazok 50x100, 50 + 50 - 100 = 0 (posun o 50px hore)
+        draw_x = camera.apply(self.rect).x
+        draw_y = camera.apply(self.rect).y + self.rect.height - self.image.get_height()
+        
+        screen.blit(self.image, (draw_x, draw_y))
