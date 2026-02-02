@@ -6,9 +6,7 @@ from camera import Camera
 from gui import GUI
 from fade import Fade
 from grave import Grave
-from digMinigame import DigMinigame
-
-
+from dialogue import Dialogue
 
 # Function to load a simple map from a text file
 def load_map(filename, tile_size):
@@ -78,6 +76,14 @@ def load_map(filename, tile_size):
                 elif char == "z":
                     tiles.append((rect, "z")) # wall LD
                     collidable_tiles.append(rect)
+                elif char == "n":
+                    tiles.append((rect, "n")) # wheat wall
+                    collidable_tiles.append(rect)
+                elif char == "m":
+                    tiles.append((rect, "m")) # wheat wall top
+                    collidable_tiles.append(rect)
+
+                    
     return tiles, collidable_tiles
 
 # Load images form folder functiuon
@@ -115,7 +121,6 @@ pygame.display.set_icon(pygame.image.load(r".\Resources\Logo_Small.png"))
 
 # Set up clock for controlling FPS
 clock = pygame.time.Clock()
-
 
 
 # Fade effect
@@ -156,6 +161,9 @@ wall_LT_img = pygame.image.load(r"Resources/Walls/Wall_LT.png").convert_alpha() 
 wall_RD_img = pygame.image.load(r"Resources/Walls/Wall_RD.png").convert_alpha()             #c
 wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()             #z
 
+wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()       #n
+wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()#m
+
 
 # Load gravestone images
 grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
@@ -188,7 +196,8 @@ wall_LT_img = pygame.transform.scale(wall_LT_img, (TILE_SIZE, TILE_SIZE))
 wall_RD_img = pygame.transform.scale(wall_RD_img, (TILE_SIZE, TILE_SIZE))
 wall_LD_img = pygame.transform.scale(wall_LD_img, (TILE_SIZE, TILE_SIZE))
 
-
+wheat_wall_img = pygame.transform.scale(wheat_wall_img, (TILE_SIZE, TILE_SIZE))
+wheat_wall_top_img = pygame.transform.scale(wheat_wall_top_img, (TILE_SIZE, TILE_SIZE))
 
 # Jamy (closed/opened img) budu mat vysku 2-nasobok TILE_SIZE (100px)
 grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
@@ -245,6 +254,8 @@ while is_running:
 
         gui.handle_input(event)
 
+    
+
 
     # Update player and camera
     player.handle_keys_with_collision(4000, 4000, collidable_walls)
@@ -293,6 +304,10 @@ while is_running:
             screen.blit(wall_RD_img, camera.apply(rect))
         elif tile_type == "z":
             screen.blit(wall_LD_img, camera.apply(rect))
+        elif tile_type == "n":
+            screen.blit(wheat_wall_img, camera.apply(rect))
+        elif tile_type == "m":
+            screen.blit(wheat_wall_top_img, camera.apply(rect))
 
     # Draw closed grave pits (Vykreslujeme prve, aby boli pod hrobmi)
     for pit in grave_pits:
@@ -305,6 +320,7 @@ while is_running:
         
     # Draw the well object (Posunieme Y suradnicu blitovania o vysku objektu, aby sedel na 800y)
     screen.blit(object_well_img, camera.apply(well_rect).move(0, well_rect.height - object_well_img.get_height()))
+
 
 
     # Draw player
