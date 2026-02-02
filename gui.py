@@ -71,7 +71,7 @@ class GUI:
         )
 
     def draw_day(self):
-        day = getattr(self.player, "day", 1)
+        day = getattr(self.player, "day", "Monday")
         self.draw_outlined_text(
             f"Day: {day}",
             10, 70,
