@@ -114,6 +114,7 @@ while is_running:
             if event.button == 1:  
                 selected_item = gui.get_selected_item()
                 print(f"Used item: {selected_item}")
+                fade.fade_in()
 
         gui.handle_input(event)
 
