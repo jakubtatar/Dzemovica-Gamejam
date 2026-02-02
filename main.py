@@ -6,6 +6,9 @@ from camera import Camera
 from gui import GUI
 from fade import Fade
 from grave import Grave
+from digMinigame import DigMinigame
+
+
 
 # Function to load a simple map from a text file
 def load_map(filename, tile_size):
@@ -112,6 +115,8 @@ pygame.display.set_icon(pygame.image.load(r".\Resources\Logo_Small.png"))
 
 # Set up clock for controlling FPS
 clock = pygame.time.Clock()
+
+
 
 # Fade effect
 fade = Fade(screen, speed=8)
