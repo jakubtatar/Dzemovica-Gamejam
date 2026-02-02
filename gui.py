@@ -11,7 +11,7 @@ class GUI:
         self.start_time = time.time()
 
         # inventory
-        self.inventory = ["Sword", "Shovel", "Holy water", "Cross"]
+        self.inventory = ["[1] Sword", "[2] Shovel", "[3] Holy water", "[4] Cross"]
         self.selected_index = 0
 
     
@@ -41,10 +41,15 @@ class GUI:
     
     def handle_input(self, event):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_e:
-                self.selected_index = (self.selected_index + 1) % len(self.inventory)
-            elif event.key == pygame.K_q:
-                self.selected_index = (self.selected_index - 1) % len(self.inventory)
+            # Priamy výber klávesmi 1 až 4
+            if event.key == pygame.K_1 or event.key == pygame.K_KP1:
+                self.selected_index = 0
+            elif event.key == pygame.K_2 or event.key == pygame.K_KP2:
+                self.selected_index = 1
+            elif event.key == pygame.K_3 or event.key == pygame.K_KP3:
+                self.selected_index = 2
+            elif event.key == pygame.K_4 or event.key == pygame.K_KP4:
+                self.selected_index = 3
 
     def get_selected_item(self):
         return self.inventory[self.selected_index]
