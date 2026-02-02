@@ -46,6 +46,35 @@ def load_map(filename, tile_size):
                 elif char == "9":
                     tiles.append((rect, "9"))
                     collidable_tiles.append(rect)
+                elif char == "p":
+                    tiles.append((rect, "p")) # pridane pre planks
+                elif char == "s":
+                    tiles.append((rect, "s")) # wall
+                    collidable_tiles.append(rect)
+                elif char == "f":
+                    tiles.append((rect, "f")) # wall front
+                    collidable_tiles.append(rect)
+                elif char == "w":
+                    tiles.append((rect, "w")) # wall top
+                    collidable_tiles.append(rect)
+                elif char == "a":
+                    tiles.append((rect, "a")) # wall left
+                    collidable_tiles.append(rect)
+                elif char == "d":
+                    tiles.append((rect, "d")) # wall right
+                    collidable_tiles.append(rect)
+                elif char == "e":
+                    tiles.append((rect, "e")) # wall RT
+                    collidable_tiles.append(rect)
+                elif char == "q":
+                    tiles.append((rect, "q")) # wall LT
+                    collidable_tiles.append(rect)
+                elif char == "c":
+                    tiles.append((rect, "c")) # wall RD
+                    collidable_tiles.append(rect)
+                elif char == "z":
+                    tiles.append((rect, "z")) # wall LD
+                    collidable_tiles.append(rect)
     return tiles, collidable_tiles
 
 # Load images form folder functiuon
@@ -110,10 +139,22 @@ hedgeRT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerRT.png").con
 hedgeLT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLT.png").convert_alpha()
 hedgetopwall_img = pygame.image.load(r"Resources/Images/Image_HedgeTopWall.png").convert_alpha()
 
+# Load walls and floors
+floor_planks_img = pygame.image.load(r"Resources/Floors/Floor_Planks.png").convert_alpha()  #p
+wall_img = pygame.image.load(r"Resources/Walls/Wall.png").convert_alpha()                   #s
+wall_front_img = pygame.image.load(r"Resources/Walls/Wall_Front.png").convert_alpha()       #f
+wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Top.png").convert_alpha()           #w
+wall_left_img = pygame.image.load(r"Resources/Walls/Wall_Left.png").convert_alpha()         #a
+wall_right_img = pygame.image.load(r"Resources/Walls/Wall_Right.png").convert_alpha()       #d
+wall_RT_img = pygame.image.load(r"Resources/Walls/Wall_RT.png").convert_alpha()             #e
+wall_LT_img = pygame.image.load(r"Resources/Walls/Wall_LT.png").convert_alpha()             #q
+wall_RD_img = pygame.image.load(r"Resources/Walls/Wall_RD.png").convert_alpha()             #c
+wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()             #z
+
+
 # Load gravestone images
 grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
 grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
-
 
 gravestone_images = load_images_from_folder(
     "Resources/Gravestones",
@@ -130,6 +171,19 @@ hedgeRT_img = pygame.transform.scale(hedgeRT_img, (TILE_SIZE, TILE_SIZE))
 hedgeLT_img = pygame.transform.scale(hedgeLT_img, (TILE_SIZE, TILE_SIZE))
 hedgetopfront_img = pygame.transform.scale(hedgetopfront_img, (TILE_SIZE, TILE_SIZE))
 hedgetopwall_img = pygame.transform.scale(hedgetopwall_img, (TILE_SIZE, TILE_SIZE))
+
+floor_planks_img = pygame.transform.scale(floor_planks_img, (TILE_SIZE, TILE_SIZE))
+wall_img = pygame.transform.scale(wall_img, (TILE_SIZE, TILE_SIZE))
+wall_front_img = pygame.transform.scale(wall_front_img, (TILE_SIZE, TILE_SIZE))
+wall_top_img = pygame.transform.scale(wall_top_img, (TILE_SIZE, TILE_SIZE))
+wall_left_img = pygame.transform.scale(wall_left_img, (TILE_SIZE, TILE_SIZE))
+wall_right_img = pygame.transform.scale(wall_right_img, (TILE_SIZE, TILE_SIZE))
+wall_RT_img = pygame.transform.scale(wall_RT_img, (TILE_SIZE, TILE_SIZE))
+wall_LT_img = pygame.transform.scale(wall_LT_img, (TILE_SIZE, TILE_SIZE))
+wall_RD_img = pygame.transform.scale(wall_RD_img, (TILE_SIZE, TILE_SIZE))
+wall_LD_img = pygame.transform.scale(wall_LD_img, (TILE_SIZE, TILE_SIZE))
+
+
 
 # Jamy (closed/opened img) budu mat vysku 2-nasobok TILE_SIZE (100px)
 grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
@@ -214,6 +268,26 @@ while is_running:
             screen.blit(hedgeLT_img, camera.apply(rect))
         elif tile_type == "9":
             screen.blit(hedgeRT_img, camera.apply(rect))
+        elif tile_type == "p":
+            screen.blit(floor_planks_img, camera.apply(rect))
+        elif tile_type == "s":
+            screen.blit(wall_img, camera.apply(rect))
+        elif tile_type == "f":
+            screen.blit(wall_front_img, camera.apply(rect))
+        elif tile_type == "w":
+            screen.blit(wall_top_img, camera.apply(rect))
+        elif tile_type == "a":
+            screen.blit(wall_left_img, camera.apply(rect))
+        elif tile_type == "d":
+            screen.blit(wall_right_img, camera.apply(rect))
+        elif tile_type == "e":
+            screen.blit(wall_RT_img, camera.apply(rect))
+        elif tile_type == "q":
+            screen.blit(wall_LT_img, camera.apply(rect))
+        elif tile_type == "c":
+            screen.blit(wall_RD_img, camera.apply(rect))
+        elif tile_type == "z":
+            screen.blit(wall_LD_img, camera.apply(rect))
 
     # Draw closed grave pits (Vykreslujeme prve, aby boli pod hrobmi)
     for pit in grave_pits:
