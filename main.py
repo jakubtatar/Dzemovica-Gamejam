@@ -49,9 +49,27 @@ walls, collidable_walls = load_map(r".\Resources\Bitmaps\cmitermap.txt", TILE_SI
 tile1_img = pygame.image.load(r"Resources/Images/Image_Plot1.png").convert_alpha()
 tile2_img = pygame.image.load(r"Resources/Images/Image_Plot2.png").convert_alpha()
 
+<<<<<<< Updated upstream
+=======
+# Load hedge images
+hedgefront_img = pygame.image.load(r"Resources/Images/Image_HedgeFront.png").convert_alpha()
+hedgetopfront_img = pygame.image.load(r"Resources/Images/Image_HedgeTopFront.png").convert_alpha()
+hedgeRD_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerRD.png").convert_alpha()
+hedgeLD_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLD.png").convert_alpha()
+hedgeRT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerRT.png").convert_alpha()
+hedgeLT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLT.png").convert_alpha()
+hedgetopwall_img = pygame.image.load(r"Resources/Images/Image_HedgeTopWall.png").convert_alpha()
+
+# Load human images
+human_img = pygame.image.load(r"Resources/Humans/Human_1.png").convert_alpha()
+human_img = pygame.transform.scale(human_img, (TILE_SIZE, TILE_SIZE *2))
+
+>>>>>>> Stashed changes
 # Optionally scale to TILE_SIZE
 tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
 tile2_img = pygame.transform.scale(tile2_img, (TILE_SIZE, TILE_SIZE))
+
+
 
 
 # Main loop
@@ -82,6 +100,10 @@ while is_running:
         player.color,
         camera.apply(player.rect)
     )
+    
+    # Draw a human for demonstration
+    human_rect = pygame.Rect(300, 300, TILE_SIZE, TILE_SIZE * 2)
+    screen.blit(human_img, camera.apply(human_rect))
 
 
     pygame.display.flip()
