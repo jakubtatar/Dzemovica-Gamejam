@@ -76,8 +76,7 @@ class GUI:
         elapsed_seconds = int(time.time() - self.start_time)
         
         # Dlzka dna v sekundach
-        sekundy_na_den = 60
-        
+        sekundy_na_den = 480
         
         # Vyberani dna
         index_dna = (elapsed_seconds // sekundy_na_den) % len(dni)
@@ -88,6 +87,25 @@ class GUI:
             f"Day: {aktualny_nazov}",
             10, 70,
             (0, 255, 0)
+        )
+
+    def draw_time(self):
+        # 1. Zistíme, koľko reálnych sekúnd ubehlo
+        real_seconds = time.time() - self.start_time
+        
+        # 2. Prepočítame na herné minúty
+        game_minutes_total = int(real_seconds * 3)
+        
+        # 3. Vypočítame hodiny a minúty pre formát 00:00
+        hours = (game_minutes_total // 60) % 24
+        minutes = game_minutes_total % 60
+        
+        time_str = f"{hours:02}:{minutes:02}"
+        
+        self.draw_outlined_text(
+            f"Time: {time_str}",
+            620, 10,
+            (0, 0, 255)
         )
    
     def draw_inventory(self):
@@ -118,3 +136,4 @@ class GUI:
         self.draw_money()
         self.draw_day()
         self.draw_inventory()
+        self.draw_time()
