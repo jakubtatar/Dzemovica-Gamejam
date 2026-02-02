@@ -115,16 +115,16 @@ gravestone_images = load_images_from_folder(
 )
 
 # # Create graves (20 graves next to each other)
-# graves = []
+graves = []
 
-# start_x = 200
-# start_y = 500
-# spacing = TILE_SIZE
+start_x = 200
+start_y = 500
+spacing = TILE_SIZE
 
-# for i in range(20):
-#     x = start_x + i * spacing
-#     y = start_y
-#     graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
+for i in range(20):
+    x = start_x + i * spacing
+    y = start_y
+    graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
 
 # Optionally scale to TILE_SIZE
 tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
@@ -147,10 +147,19 @@ while is_running:
 
         # We get selected item on mouse click
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  
+            if event.button == 1:  # ľavý klik
                 selected_item = gui.get_selected_item()
-                print(f"Used item: {selected_item}")
-                fade.fade_in()
+
+            if selected_item == "Shovel":
+                # zarovnanie na grid
+                x = (player.rect.centerx // TILE_SIZE) * TILE_SIZE
+                y = (player.rect.bottom // TILE_SIZE) * TILE_SIZE
+
+            graves.append(
+                Grave(x, y, TILE_SIZE, gravestone_images)
+            )
+
+            print("New grave created at:", x, y)
 
         gui.handle_input(event)
 
@@ -183,9 +192,9 @@ while is_running:
         elif tile_type == "9":
             screen.blit(hedgeRT_img, camera.apply(rect))
 
-    # # Draw graves
-    # for grave in graves:
-    #     grave.draw(screen, camera)
+     # Draw graves
+    for grave in graves:
+        grave.draw(screen, camera)
 
     # Draw player
     pygame.draw.rect(
