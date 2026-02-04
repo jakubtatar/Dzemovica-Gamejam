@@ -7,84 +7,8 @@ from gui import GUI
 from fade import Fade
 from grave import Grave
 from dialogue import Dialogue
+from mapsmanager import MapsManager
 
-# Function to load a simple map from a text file
-def load_map(filename, tile_size):
-    tiles = []
-    collidable_tiles = []
-    with open(filename, "r") as file:
-        for row_index, line in enumerate(file):
-            for col_index, char in enumerate(line.strip()):
-                x = col_index * tile_size
-                y = row_index * tile_size
-                rect = pygame.Rect(x, y, tile_size, tile_size)
-                
-                if char == "1":
-                    tiles.append((rect, "1"))  
-                elif char == "2":
-                    tiles.append((rect, "2"))
-                    collidable_tiles.append(rect) 
-                elif char == "0":
-                    tiles.append((rect, "0"))  
-                elif char == "3":
-                    tiles.append((rect, "3"))
-                    collidable_tiles.append(rect)
-                elif char == "4":
-                    tiles.append((rect, "4"))
-                    collidable_tiles.append(rect)
-                elif char == "5":
-                    tiles.append((rect, "5"))
-                    collidable_tiles.append(rect)
-                elif char == "6":
-                    tiles.append((rect, "6"))
-                    collidable_tiles.append(rect)
-                elif char == "7":
-                    tiles.append((rect, "7"))
-                    collidable_tiles.append(rect)
-                elif char == "8":
-                    tiles.append((rect, "8"))
-                    collidable_tiles.append(rect)
-                elif char == "9":
-                    tiles.append((rect, "9"))
-                    collidable_tiles.append(rect)
-                elif char == "p":
-                    tiles.append((rect, "p")) # pridane pre planks
-                elif char == "s":
-                    tiles.append((rect, "s")) # wall
-                    collidable_tiles.append(rect)
-                elif char == "f":
-                    tiles.append((rect, "f")) # wall front
-                    collidable_tiles.append(rect)
-                elif char == "w":
-                    tiles.append((rect, "w")) # wall top
-                    collidable_tiles.append(rect)
-                elif char == "a":
-                    tiles.append((rect, "a")) # wall left
-                    collidable_tiles.append(rect)
-                elif char == "d":
-                    tiles.append((rect, "d")) # wall right
-                    collidable_tiles.append(rect)
-                elif char == "e":
-                    tiles.append((rect, "e")) # wall RT
-                    collidable_tiles.append(rect)
-                elif char == "q":
-                    tiles.append((rect, "q")) # wall LT
-                    collidable_tiles.append(rect)
-                elif char == "c":
-                    tiles.append((rect, "c")) # wall RD
-                    collidable_tiles.append(rect)
-                elif char == "z":
-                    tiles.append((rect, "z")) # wall LD
-                    collidable_tiles.append(rect)
-                elif char == "n":
-                    tiles.append((rect, "n")) # wheat wall
-                    collidable_tiles.append(rect)
-                elif char == "m":
-                    tiles.append((rect, "m")) # wheat wall top
-                    collidable_tiles.append(rect)
-
-                    
-    return tiles, collidable_tiles
 
 # Load images form folder functiuon
 def load_images_from_folder(folder_path, tile_size):
@@ -122,7 +46,7 @@ pygame.display.set_icon(pygame.image.load(r".\Resources\Logo_Small.png"))
 # Set up clock for controlling FPS
 clock = pygame.time.Clock()
 
-
+maps_manager = MapsManager()
 # Fade effect
 fade = Fade(screen, speed=8)
 
@@ -134,7 +58,7 @@ gui = GUI(screen, player)
 
 # Map settings
 TILE_SIZE = 50
-walls, collidable_walls = load_map(r".\Resources\Bitmaps\cmitermap.txt", TILE_SIZE)
+walls, collidable_walls = maps_manager.load_map("./Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
 
 # Load tile images
 tile1_img = pygame.image.load(r"Resources/Images/Image_Plot1.png").convert_alpha()
