@@ -59,20 +59,17 @@
         #preview-pane {
             width: 65%;
             height: 100%;
-            background: #083214; /* Matches your screen.fill((8, 50, 20)) */
+            background: #083214;
             overflow: auto;
             display: flex;
             justify-content: center;
             align-items: flex-start;
             padding: 40px;
-            
-            /* Pixel Art rendering crispness */
             image-rendering: pixelated; 
         }
 
         #grid {
             display: grid;
-            /* No gap, so images merge perfectly like in game */
             gap: 0px; 
             border: 4px solid #000;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -80,13 +77,11 @@
 
         /* --- TILES --- */
         .tile {
-            width: 50px;  /* Matches your TILE_SIZE = 50 */
+            width: 50px;
             height: 50px;
             background-size: cover;
             background-repeat: no-repeat;
             position: relative;
-            
-            /* Fallback text if image missing */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -95,44 +90,32 @@
         }
 
         /* --- IMAGE MAPPINGS --- */
-        /* We use the exact relative paths to your Resources folder */
-        
-        /* 0: Floor (Plot2) */
         .tile-0 { background-image: url('Resources/Images/Image_Plot2.png'); }
-
-        /* 1: Floor (Plot1) */
         .tile-1 { background-image: url('Resources/Images/Image_Plot1.png'); }
-
-        /* 3: Hedge Front */
         .tile-3 { background-image: url('Resources/Images/Image_HedgeFront.png'); }
-
-        /* 4: Hedge Top Front */
         .tile-4 { background-image: url('Resources/Images/Image_HedgeTopFront.png'); }
-
-        /* 5: Hedge Corner RD */
         .tile-5 { background-image: url('Resources/Images/Image_HedgeCornerRD.png'); }
-
-        /* 6: Hedge Corner LD */
         .tile-6 { background-image: url('Resources/Images/Image_HedgeCornerLD.png'); }
-
-        /* 7: Hedge Top Wall */
         .tile-7 { background-image: url('Resources/Images/Image_HedgeTopWall.png'); }
-
-        /* 8: Hedge Corner LT */
         .tile-8 { background-image: url('Resources/Images/Image_HedgeCornerLT.png'); }
-
-        /* 9: Hedge Corner RT */
         .tile-9 { background-image: url('Resources/Images/Image_HedgeCornerRT.png'); }
-
-        /* 2: Invisible Collidable Wall (No image in your code, so we give it a red tint) */
+        .tile-p { background-image: url('Resources/Floors/Floor_Planks.png'); }
+        .tile-s { background-image: url('Resources/Walls/Wall.png'); }
+        .tile-f { background-image: url('Resources/Walls/Wall_Front.png'); }
+        .tile-w { background-image: url('Resources/Walls/Wall_Top.png'); }
+        .tile-a { background-image: url('Resources/Walls/Wall_Left.png'); }
+        .tile-d { background-image: url('Resources/Walls/Wall_Right.png'); }
+        .tile-e { background-image: url('Resources/Walls/Wall_RT.png'); }
+        .tile-q { background-image: url('Resources/Walls/Wall_LT.png'); }
+        .tile-c { background-image: url('Resources/Walls/Wall_RD.png'); }
+        .tile-z { background-image: url('Resources/Walls/Wall_LD.png'); }
+        .tile-n { background-image: url('Resources/Walls/Wall_Wheat.png'); }
+        .tile-m { background-image: url('Resources/Walls/Wall_Wheat_Top.png'); }
         .tile-2 { 
             background-color: rgba(255, 0, 0, 0.3); 
             border: 1px dashed red;
         }
-
-        /* Unknown / Error */
         .tile-unknown { background-color: rgba(0,0,0,0.5); }
-
     </style>
 </head>
 <body>
@@ -143,10 +126,10 @@
             <button class="btn" onclick="copyToClipboard()">Copy to Clipboard</button>
         </div>
         <textarea id="mapInput" spellcheck="false" placeholder="Type map here...">844449
-300003
-301103
-301103
-300003
+3000p3
+3011p3
+3011p3
+3000p3
 633335</textarea>
     </div>
 
@@ -158,18 +141,14 @@
         const textarea = document.getElementById('mapInput');
         const grid = document.getElementById('grid');
 
-        // Render function
         function renderMap() {
             const rawText = textarea.value;
             const rows = rawText.split('\n');
             
-            // Calculate grid dimensions
             const rowCount = rows.length;
             let maxColCount = 0;
             rows.forEach(r => maxColCount = Math.max(maxColCount, r.trim().length));
 
-            // Set grid CSS
-            // TILE_SIZE is 50px in your python, so we use 50px here
             grid.style.gridTemplateColumns = `repeat(${maxColCount}, 50px)`;
             grid.style.gridTemplateRows = `repeat(${rowCount}, 50px)`;
             grid.innerHTML = '';
@@ -179,15 +158,17 @@
                 for (let i = 0; i < maxColCount; i++) {
                     const cell = document.createElement('div');
                     cell.classList.add('tile');
-                    
+
                     if (i < chars.length) {
                         const char = chars[i];
-                        if (char >= '0' && char <= '9') {
-                            cell.classList.add(`tile-${char}`);
+                        // Allow digits 0-9 and letters (like 'p')
+                        if (/^[0-9a-z]$/i.test(char)) {
+                            cell.classList.add(`tile-${char.toLowerCase()}`);
                         } else {
                             cell.classList.add('tile-unknown');
                         }
                     }
+
                     grid.appendChild(cell);
                 }
             });
@@ -196,7 +177,6 @@
         function copyToClipboard() {
             textarea.select();
             document.execCommand('copy');
-            // Brief visual feedback
             const btn = document.querySelector('.btn');
             const originalText = btn.innerText;
             btn.innerText = "Copied!";
