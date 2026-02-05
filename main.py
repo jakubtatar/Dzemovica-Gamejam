@@ -153,6 +153,9 @@ collidable_walls.append(well_rect) # Pridame studnu do kolizii
 
 # Main loop
 is_running = True
+game_paused = False
+pause_start_time = 0
+total_paused_time = 0
 
 while is_running:
     selected_item = gui.get_selected_item()
@@ -161,7 +164,14 @@ while is_running:
         if event.type == pygame.QUIT:
             is_running = False
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.KEYDOWN: 
+            if event.key == pygame.K_ESCAPE:
+                game_paused = not game_paused
+                print("Pauza:", game_paused)
+
+
+        if not game_paused:
+         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left click (kopanie)
                 if selected_item == "Shovel":
                     gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE
@@ -176,14 +186,13 @@ while is_running:
                 print("Vsetky jamy otvorene!")
 
 
-        gui.handle_input(event)
+        gui.handle_input(event, game_paused)
 
-    
-
-
+      
     # Update player and camera
-    player.handle_keys_with_collision(4000, 4000, collidable_walls)
-    camera.update(player)
+    if not game_paused:
+      player.handle_keys_with_collision(4000, 4000, collidable_walls)
+      camera.update(player)
 
     # CLEAR SCREEN FIRST
     screen.fill((8, 50, 20))
@@ -241,6 +250,8 @@ while is_running:
      # Draw graves
     for grave in graves:
         grave.draw(screen, camera)
+
+   
         
     # Draw the well object (Posunieme Y suradnicu blitovania o vysku objektu, aby sedel na 800y)
     screen.blit(object_well_img, camera.apply(well_rect).move(0, well_rect.height - object_well_img.get_height()))
@@ -255,8 +266,18 @@ while is_running:
     )
 
     gui.draw()
+
+    # Draw pause menu if game is paused
+
+    if game_paused:
+     gui.draw_pause_menu(screen)
+     pygame.display.flip()
+     clock.tick(60)
+    
     pygame.display.flip()
     clock.tick(60)
+
+
 
 # Quit Pygame
 pygame.quit()

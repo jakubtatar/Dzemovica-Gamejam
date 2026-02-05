@@ -77,7 +77,7 @@ class MainMenu:
                 self.draw_text("CREDITS", 80, "big", (255, 215, 0))
                 
                 lines = [
-                    ("PROGRAMMING", "Meno 1, Meno 2"),
+                    ("PROGRAMMING", "Meno 1, Meno 2, Meno 3"),
                     ("ART AND DESIGN", "Meno 3, Meno 4"),
                     ("SOUND", "Meno 5")
                 ]

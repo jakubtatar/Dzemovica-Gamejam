@@ -38,7 +38,9 @@ class GUI:
         self.screen.blit(text_surf, rect)
 
     
-    def handle_input(self, event):
+    def handle_input(self, event, game_paused):
+        if game_paused:
+          return
         if event.type == pygame.KEYDOWN:
             # Priamy výber klávesmi 1 až 4
             if event.key == pygame.K_1 or event.key == pygame.K_KP1:
@@ -85,7 +87,7 @@ class GUI:
         # Vykreslenie na obrazovku
         self.draw_outlined_text(
             f"Day: {aktualny_nazov}",
-            600, 40,
+            570, 40,
             (0, 255, 0)
         )
 
@@ -104,10 +106,23 @@ class GUI:
         
         self.draw_outlined_text(
             f"Time: {time_str}",
-            600, 10,
+            570, 10,
             (0, 0, 255)
         )
+
+    def draw_pause_menu(self, screen):
+    # Filter
+     overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
+     overlay.fill((0, 0, 0, 150))
+     screen.blit(overlay, (0, 0))
+
+    # Text "PAUZA"
+     font = pygame.font.SysFont("Arial", 50, bold=True)
+     text = font.render("HRA JE POZASTAVENÁ", True, (255, 255, 255))
+     rect = text.get_rect(center=(screen.get_width()//2, screen.get_height()//2))
+     screen.blit(text, rect)
    
+
     def draw_inventory(self):
         screen_width, screen_height = self.screen.get_size()
         padding = 10
@@ -131,6 +146,7 @@ class GUI:
             self.screen.blit(text_surf, rect)
             y -= rect.height + 5
 
+            
     def draw(self):
         self.draw_health()
         self.draw_money()
