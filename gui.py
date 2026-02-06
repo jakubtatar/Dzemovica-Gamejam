@@ -2,12 +2,16 @@ import pygame
 import time
 
 class GUI:
+   
     def __init__(self, screen, player):
         self.screen = screen
         self.player = player
 
-        # font
+        # Hlavný font (30px)
         self.font = pygame.font.Font(r".\Resources\Fonts\upheavtt.ttf", 30)
+        # Väčší font pre nadpisy (50px) - ak súbor neexistuje, zmeň cestu
+        self.font_big = pygame.font.Font(r".\Resources\Fonts\upheavtt.ttf", 50)
+        
         self.start_time = time.time()
 
         # inventory
@@ -110,19 +114,61 @@ class GUI:
             (0, 0, 255)
         )
 
-    def draw_pause_menu(self, screen):
-    # Filter
-     overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
-     overlay.fill((0, 0, 0, 150))
-     screen.blit(overlay, (0, 0))
+    def draw_pause_menu(self, screen, click):
+        # 1. Inicializujeme zoznam, aby main.py hneď vedel, že existuje
+        self.pause_buttons = []
+        
+        # 2. Filter (tmavé pozadie)
+        overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 150))
+        screen.blit(overlay, (0, 0))
 
-    # Text "PAUZA"
-     font = pygame.font.SysFont("Arial", 50, bold=True)
-     text = font.render("HRA JE POZASTAVENÁ", True, (255, 255, 255))
-     rect = text.get_rect(center=(screen.get_width()//2, screen.get_height()//2))
-     screen.blit(text, rect)
-   
+        # 3. Nadpis "PAUZA" tvojím fontom
+        # Použijeme tvoju funkciu draw_outlined_text (bez use_big_font, lebo hádzala chybu)
+        self.draw_outlined_text(
+            "HRA JE POZASTAVENA", 
+            screen.get_width() // 2, 
+            screen.get_height() // 4, 
+            (255, 255, 255), 
+            anchor="center"
+        )
 
+        mx, my = pygame.mouse.get_pos()
+        # Zoznam tlačidiel (vrátené OPTIONS)
+        button_texts = ["RESUME", "OPTIONS", "QUIT"]
+        
+        action_triggered = None
+
+        for i, text_str in enumerate(button_texts):
+            color = (255, 255, 255)
+            # Vytvorenie Rectu pre každé tlačidlo
+            rect = pygame.Rect(0, 0, 200, 50)
+            rect.center = (screen.get_width() // 2, screen.get_height() // 2 + i * 60)
+            
+            if rect.collidepoint((mx, my)):
+                color = (255, 0, 0) # Hover efekt (sčervenie)
+                if click:
+                    # Kliknutie na OPTIONS teraz nespustí nič
+                    if text_str != "OPTIONS":
+                        action_triggered = text_str
+            
+            # Vykreslenie textu tlačidla tvojím self.font
+            txt_surf = self.font.render(text_str, True, color)
+            txt_rect = txt_surf.get_rect(center=rect.center)
+            
+            # Pridáme obrys, aby to ladilo k tvojmu štýlu
+            outline_surf = self.font.render(text_str, True, (0, 0, 0))
+            for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
+                screen.blit(outline_surf, txt_rect.move(dx, dy))
+            
+            screen.blit(txt_surf, txt_rect)
+            
+            # Zapíšeme do zoznamu pre main.py
+            self.pause_buttons.append((rect, text_str))
+
+        return action_triggered
+
+       
     def draw_inventory(self):
         screen_width, screen_height = self.screen.get_size()
         padding = 10

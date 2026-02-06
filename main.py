@@ -150,12 +150,12 @@ for i in range(20):
 well_rect = pygame.Rect(400, 800, TILE_SIZE * 4, TILE_SIZE * 4) 
 collidable_walls.append(well_rect) # Pridame studnu do kolizii
 
-
 # Main loop
 is_running = True
 game_paused = False
 pause_start_time = 0
 total_paused_time = 0
+pause_view = "menu"
 
 while is_running:
     selected_item = gui.get_selected_item()
@@ -169,6 +169,14 @@ while is_running:
                 game_paused = not game_paused
                 print("Pauza:", game_paused)
 
+        if game_paused and event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1: # Ľavý klik
+                for rect, action in gui.pause_buttons:
+                    if rect.collidepoint(event.pos):
+                        if action == "RESUME":
+                            game_paused = False
+                        elif action == "QUIT":
+                            is_running = False
 
         if not game_paused:
          if event.type == pygame.MOUSEBUTTONDOWN:
@@ -270,9 +278,16 @@ while is_running:
     # Draw pause menu if game is paused
 
     if game_paused:
-     gui.draw_pause_menu(screen)
-     pygame.display.flip()
-     clock.tick(60)
+        # Voláme funkciu len s dvoma argumentmi: screen a mouse_click
+        res = gui.draw_pause_menu(screen, click=False)  # Môžeš nahradiť False za aktuálny stav kliknutia myši, ak ho máš ošetrený v GUI
+        
+        if res == "RESUME":
+            game_paused = False
+            # Ak máš ošetrený čas, pridaj: total_paused_time += time.time() - pause_start_time
+            
+        elif res == "QUIT":
+            pygame.quit()
+            exit()
     
     pygame.display.flip()
     clock.tick(60)
