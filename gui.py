@@ -128,7 +128,7 @@ class GUI:
         self.draw_outlined_text(
             "HRA JE POZASTAVENA", 
             screen.get_width() // 2, 
-            screen.get_height() // 4, 
+            screen.get_height() // 3, 
             (255, 255, 255), 
             anchor="center"
         )
