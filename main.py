@@ -156,6 +156,7 @@ game_paused = False
 pause_start_time = 0
 total_paused_time = 0
 pause_view = "menu"
+mouse_click = False
 
 while is_running:
     selected_item = gui.get_selected_item()
@@ -168,6 +169,10 @@ while is_running:
             if event.key == pygame.K_ESCAPE:
                 game_paused = not game_paused
                 print("Pauza:", game_paused)
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                mouse_click = True
 
         if game_paused and event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1: # Ľavý klik
@@ -277,18 +282,24 @@ while is_running:
 
     # Draw pause menu if game is paused
 
+  
+
+# 2. V časti, kde kreslíš pauzu (okolo riadku 280)
     if game_paused:
-        # Voláme funkciu len s dvoma argumentmi: screen a mouse_click
-        res = gui.draw_pause_menu(screen, click=False)  # Môžeš nahradiť False za aktuálny stav kliknutia myši, ak ho máš ošetrený v GUI
+        # Voláme GUI a ukladáme vrátenú hodnotu
+        result = gui.draw_pause_menu(screen, pause_view, mouse_click)
+
+        if mouse_click:
+            mouse_click = False
         
-        if res == "RESUME":
+        if result == "resume":
             game_paused = False
-            # Ak máš ošetrený čas, pridaj: total_paused_time += time.time() - pause_start_time
-            
-        elif res == "QUIT":
-            pygame.quit()
-            exit()
-    
+            pause_view = "menu"
+        elif result == "quit":
+            is_running = False
+        elif result is not None:
+            # Ak result je napr. "settings", pause_view sa prepne a menu sa zmení
+            pause_view = result
     pygame.display.flip()
     clock.tick(60)
 

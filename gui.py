@@ -27,6 +27,7 @@ class GUI:
         outline_color=(0, 0, 0),
         outline_width=2,
         anchor="topleft"
+        
     ):
         text_surf = self.font.render(text, True, color)
         outline_surf = self.font.render(text, True, outline_color)
@@ -114,59 +115,66 @@ class GUI:
             (0, 0, 255)
         )
 
-    def draw_pause_menu(self, screen, click):
-        # 1. Inicializujeme zoznam, aby main.py hneď vedel, že existuje
+    def draw_pause_menu(self, screen, view, click):
+        # 1. Resetujeme zoznam tlačidiel pre každý frame
         self.pause_buttons = []
         
-        # 2. Filter (tmavé pozadie)
+        # 2. Filter (pozadie)
         overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 150))
         screen.blit(overlay, (0, 0))
 
-        # 3. Nadpis "PAUZA" tvojím fontom
-        # Použijeme tvoju funkciu draw_outlined_text (bez use_big_font, lebo hádzala chybu)
-        self.draw_outlined_text(
-            "HRA JE POZASTAVENA", 
-            screen.get_width() // 2, 
-            screen.get_height() // 3, 
-            (255, 255, 255), 
-            anchor="center"
-        )
-
         mx, my = pygame.mouse.get_pos()
-        # Zoznam tlačidiel (vrátené OPTIONS)
-        button_texts = ["RESUME", "OPTIONS", "QUIT"]
-        
-        action_triggered = None
+        action_triggered = view # Predvolene zostávame v aktuálnom view
 
-        for i, text_str in enumerate(button_texts):
-            color = (255, 255, 255)
-            # Vytvorenie Rectu pre každé tlačidlo
-            rect = pygame.Rect(0, 0, 200, 50)
-            rect.center = (screen.get_width() // 2, screen.get_height() // 2 + i * 60)
+        # === HLAVNÁ PAUZA ===
+        if view == "menu":
+            self.draw_outlined_text("HRA JE POZASTAVENA", screen.get_width()//2, screen.get_height()//4, (255, 255, 255), anchor="center")
+
+            button_texts = ["RESUME", "OPTIONS", "QUIT"]
+            for i, text_str in enumerate(button_texts):
+                color = (255, 255, 255)
+                rect = pygame.Rect(0, 0, 200, 50)
+                rect.center = (screen.get_width()//2, screen.get_height()//2 + i * 60)
+                
+                if rect.collidepoint((mx, my)):
+                    color = (255, 0, 0)
+                    if click:
+                        if text_str == "RESUME": action_triggered = "resume"
+                        if text_str == "OPTIONS": action_triggered = "settings"
+                        if text_str == "QUIT": action_triggered = "quit"
+                
+                self._draw_menu_button(screen, text_str, rect, color)
+                self.pause_buttons.append((rect, text_str))
+
+        # === PODMENU OPTIONS ===
+        elif view == "settings":
+            self.draw_outlined_text("NASTAVENIA", screen.get_width()//2, screen.get_height()//4, (255, 215, 0), anchor="center")
             
-            if rect.collidepoint((mx, my)):
-                color = (255, 0, 0) # Hover efekt (sčervenie)
-                if click:
-                    # Kliknutie na OPTIONS teraz nespustí nič
-                    if text_str != "OPTIONS":
-                        action_triggered = text_str
+            # Ukážka nastavenia (napr. Volume)
+            self.draw_outlined_text("Volume: 100%", screen.get_width()//2, screen.get_height()//2, (255, 255, 255), anchor="center")
+
+            # Tlačidlo BACK
+            back_rect = pygame.Rect(0, 0, 200, 50)
+            back_rect.center = (screen.get_width()//2, screen.get_height()//2 + 100)
+            back_color = (255, 0, 0) if back_rect.collidepoint((mx, my)) else (255, 255, 255)
             
-            # Vykreslenie textu tlačidla tvojím self.font
-            txt_surf = self.font.render(text_str, True, color)
-            txt_rect = txt_surf.get_rect(center=rect.center)
-            
-            # Pridáme obrys, aby to ladilo k tvojmu štýlu
-            outline_surf = self.font.render(text_str, True, (0, 0, 0))
-            for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
-                screen.blit(outline_surf, txt_rect.move(dx, dy))
-            
-            screen.blit(txt_surf, txt_rect)
-            
-            # Zapíšeme do zoznamu pre main.py
-            self.pause_buttons.append((rect, text_str))
+            if back_rect.collidepoint((mx, my)) and click:
+                action_triggered = "menu" # Návrat do hlavnej pauzy
+
+            self._draw_menu_button(screen, "BACK", back_rect, back_color)
+            self.pause_buttons.append((back_rect, "BACK"))
 
         return action_triggered
+
+    # Pomocná funkcia na kreslenie tlačidiel s obrysom
+    def _draw_menu_button(self, screen, text, rect, color):
+        txt_surf = self.font.render(text, True, color)
+        txt_rect = txt_surf.get_rect(center=rect.center)
+        outline_surf = self.font.render(text, True, (0, 0, 0))
+        for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
+            screen.blit(outline_surf, txt_rect.move(dx, dy))
+        screen.blit(txt_surf, txt_rect)
 
        
     def draw_inventory(self):
