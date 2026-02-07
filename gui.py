@@ -92,7 +92,7 @@ class GUI:
         # Vykreslenie na obrazovku
         self.draw_outlined_text(
             f"Day: {aktualny_nazov}",
-            570, 40,
+            540, 40,
             (0, 255, 0)
         )
 
@@ -111,7 +111,7 @@ class GUI:
         
         self.draw_outlined_text(
             f"Time: {time_str}",
-            570, 10,
+            540, 10,
             (0, 0, 255)
         )
 
