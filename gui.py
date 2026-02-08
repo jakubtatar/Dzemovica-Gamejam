@@ -76,6 +76,7 @@ class GUI:
             (255, 215, 0)
         )
         
+        
     def draw_day(self):
         # 1. Zoznam názvov dní
         dni = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
