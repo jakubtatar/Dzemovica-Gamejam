@@ -1,8 +1,5 @@
 import pygame
 
-
-
-
 class MapsManager:
     def __init__(self):
         self.maps = {}

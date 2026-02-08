@@ -60,8 +60,18 @@ gui = GUI(screen, player)
 
 
 # Map settings
+current_map = "crossroad"  # Default map, can be changed to "crossroad" or "house"
 TILE_SIZE = 50
-walls, collidable_walls = maps_manager.load_map("./Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
+walls, collidable_walls = [], []
+
+if current_map == "cmitermap":
+    walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
+elif current_map == "crossroad":
+    walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
+    player.rect.topleft = (100, 500)  # Nastavíme poziciu hráča na začiatok cesty
+elif current_map == "house":
+    walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/house.txt", TILE_SIZE)
+    player.rect.topleft = (150, 450)  # Nastavíme poziciu hráča do domu
 
 # Load tile images
 tile1_img = pygame.image.load(r"Resources/Images/Image_Plot1.png").convert_alpha()
@@ -138,21 +148,18 @@ object_well_img = pygame.transform.scale(object_well_img, (TILE_SIZE * 4, TILE_S
 graves = []
 grave_pits = [] 
 
-start_x = 200
-start_y = 500
-spacing = TILE_SIZE
+# start_x = 200
+# start_y = 500
+# spacing = TILE_SIZE
 
-for i in range(20):
-    x = start_x + i * spacing
-    y = start_y
-    graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
-    grave_pits.append({'rect': pygame.Rect(x, y + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed'})
+# for i in range(20):
+#     x = start_x + i * spacing
+#     y = start_y
+#     graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
+#     grave_pits.append({'rect': pygame.Rect(x, y + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed'})
 
-# Define the well's position and size in world coordinates (x400, y800)
-# Rect pre studnu, velkost 4x4 tiles (200x200px)
+#Map specific objects
 well_rect = pygame.Rect(400, 800, TILE_SIZE * 4, TILE_SIZE * 4) 
-collidable_walls.append(well_rect) # Pridame studnu do kolizii
-
 
 # Main loop
 is_running = True
@@ -203,7 +210,9 @@ while is_running:
         grave.draw(screen, camera)
         
     # Draw the well object (Posunieme Y suradnicu blitovania o vysku objektu, aby sedel na 800y)
-    screen.blit(object_well_img, camera.apply(well_rect).move(0, well_rect.height - object_well_img.get_height()))
+    if current_map == "cmitermap":
+        collidable_walls.append(well_rect) # Pridame studnu do kolizii
+        screen.blit(object_well_img, camera.apply(well_rect).move(0, well_rect.height - object_well_img.get_height()))
 
     # Draw player
     pygame.draw.rect(
