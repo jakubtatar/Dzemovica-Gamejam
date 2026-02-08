@@ -10,6 +10,7 @@ from dialogue import Dialogue
 from mapsmanager import MapsManager
 from quest import Quest
 from objectZone import ObjectZone
+from item import Item
 
 
 # Load images form folder functiuon
@@ -60,12 +61,16 @@ gui = GUI(screen, player)
 
 
 # Map settings
-current_map = "crossroad"  # Default map, can be changed to "crossroad" or "house"
+current_map = "cmitermap"  # Starting map changed to cmitermap
 TILE_SIZE = 50
 walls, collidable_walls = [], []
 
+# ChangeMapSquare setup (Initial position for cmitermap)
+change_map_square = pygame.Rect(500, 100, TILE_SIZE, TILE_SIZE)
+
 if current_map == "cmitermap":
     walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
+    player.rect.topleft = (400, 300) # Starting position on cemetery
 elif current_map == "crossroad":
     walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
     player.rect.topleft = (100, 500)  # Nastavíme poziciu hráča na začiatok cesty
@@ -148,16 +153,6 @@ object_well_img = pygame.transform.scale(object_well_img, (TILE_SIZE * 4, TILE_S
 graves = []
 grave_pits = [] 
 
-# start_x = 200
-# start_y = 500
-# spacing = TILE_SIZE
-
-# for i in range(20):
-#     x = start_x + i * spacing
-#     y = start_y
-#     graves.append(Grave(x, y, TILE_SIZE, gravestone_images))
-#     grave_pits.append({'rect': pygame.Rect(x, y + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed'})
-
 #Map specific objects
 well_rect = pygame.Rect(400, 800, TILE_SIZE * 4, TILE_SIZE * 4) 
 
@@ -167,6 +162,28 @@ is_running = True
 while is_running:
     selected_item = gui.get_selected_item()
     
+    # Check for map change collision
+    if player.rect.colliderect(change_map_square):
+        if current_map == "cmitermap":
+            current_map = "crossroad"
+            walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
+            player.rect.topleft = (100, 500)
+            change_map_square = pygame.Rect(450, 0, TILE_SIZE*3, TILE_SIZE)
+        elif current_map == "crossroad":
+            current_map = "house"
+            walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/house.txt", TILE_SIZE)
+            player.rect.topleft = (150, 450)
+            change_map_square = pygame.Rect(150, 550, TILE_SIZE, TILE_SIZE) # New trigger for exit
+        elif current_map == "house":
+            current_map = "crossroad"
+            walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
+            player.rect.topleft = (500, 100)
+            change_map_square = pygame.Rect(450, 0, TILE_SIZE*3, TILE_SIZE)
+        
+        # Clear map specific entities
+        graves = []
+        grave_pits = []
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
@@ -200,6 +217,9 @@ while is_running:
     for rect, tile_type in walls:
         maps_manager.drawTilemap(screen, tile_type, rect, camera, tile1_img, tile2_img, hedgefront_img, hedgetopfront_img, hedgeRD_img, hedgeLD_img, hedgetopwall_img, hedgeLT_img, hedgeRT_img, floor_planks_img, wall_img, wall_front_img, wall_top_img, wall_left_img, wall_right_img, wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img, wheat_wall_img, wheat_wall_top_img)
 
+    # Draw ChangeMapSquare (The red trigger)
+    pygame.draw.rect(screen, (255, 0, 0), camera.apply(change_map_square))
+
     # Draw closed grave pits (Vykreslujeme prve, aby boli pod hrobmi)
     for pit in grave_pits:
         image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
@@ -211,7 +231,9 @@ while is_running:
         
     # Draw the well object (Posunieme Y suradnicu blitovania o vysku objektu, aby sedel na 800y)
     if current_map == "cmitermap":
-        collidable_walls.append(well_rect) # Pridame studnu do kolizii
+        # Add well to collisions if not already there
+        if well_rect not in collidable_walls:
+            collidable_walls.append(well_rect) 
         screen.blit(object_well_img, camera.apply(well_rect).move(0, well_rect.height - object_well_img.get_height()))
 
     # Draw player
