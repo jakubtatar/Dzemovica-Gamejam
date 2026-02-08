@@ -163,7 +163,7 @@ while is_running:
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left click (kopanie)
-                if selected_item == "Shovel":
+                if selected_item == "[2] Shovel":
                     gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE
                     gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE
                     graves.append(Grave(gx, gy, TILE_SIZE, gravestone_images))
