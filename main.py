@@ -1,363 +1,565 @@
 import pygame
 import sys
 import os
-from player import Player
+import math
+import random
+
+# --- IMPORTY TVOJICH SÚBOROV ---
+# (Tieto súbory musia byť v rovnakom priečinku ako main.py)
 from camera import Camera
 from gui import GUI
 from fade import Fade
 from grave import Grave
 from dialogue import Dialogue
 from mapsmanager import MapsManager
-from quest import Quest
-from objectZone import ObjectZone
 from item import Item
 
+# --- ZÁCHRANNÉ TRIEDY (AK CHÝBA PLAYER ALEBO QUEST) ---
+try:
+    from player import Player
+except ImportError:
+    print("POZOR: Chýba player.py, používam náhradný (Dummy) Player.")
+    class Player:
+        def __init__(self, x, y, size=50, width=50, height=50, color=(0,0,255)):
+            self.rect = pygame.Rect(x, y, width, height)
+            self.image = pygame.Surface((width, height))
+            self.image.fill(color)
+            self.money = 0
+            self.day = "Monday"
+            self.color = color
+        def handle_keys_with_collision(self, w, h, walls):
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_w]: self.rect.y -= 5
+            if keys[pygame.K_s]: self.rect.y += 5
+            if keys[pygame.K_a]: self.rect.x -= 5
+            if keys[pygame.K_d]: self.rect.x += 5
+        def draw(self, screen, camera):
+            screen.blit(self.image, camera.apply(self.rect))
 
-# Load images form folder functiuon
-def load_images_from_folder(folder_path, tile_size):
-    images = {}
-    for filename in os.listdir(folder_path):
-        if filename.endswith(".png"):
-            # Oprava: Ziskame kluc ako string ("1", "6", atd.)
-            key = filename.split("_")[-1].split(".")[0]
-
-            image = pygame.image.load(
-                os.path.join(folder_path, filename)
-            ).convert_alpha()
-
-            # Ak je kluc "6", vyska bude 2-nasobna (100px)
-            current_height = tile_size * 2 if key == "6" else tile_size
-            image = pygame.transform.scale(image, (tile_size, current_height))
-            images[key] = image  # Kluc je uz string a je hashevatelny
-
-    return images
-
-
-# Initialize Pygame
-pygame.init()
-
-# Font initialization (required for GUI)
-pygame.font.init()
-font = pygame.font.Font(r".\Resources\Fonts\upheavtt.ttf", 30)
-
-# Set up display
-screen_width, screen_height = 800, 600
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("The pit you dig")
-pygame.display.set_icon(pygame.image.load(r".\Resources\Logo_Small.png"))
-
-# Set up clock for controlling FPS
-clock = pygame.time.Clock()
-
-maps_manager = MapsManager()
-
-# Fade effect
-fade = Fade(screen, speed=8)
-
-# Create game objects
-player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))
-camera = Camera(screen_width, screen_height)
-gui = GUI(screen, player)
-
-# Map settings
-current_map = "cmitermap"  # Starting map
-TILE_SIZE = 50
-walls, collidable_walls = [], []
-
-# --- MAP OBJECTS & CHANGE ZONES (FUTURE PROOF) ---
-map_objects = []          # {rect, image, collidable}
-change_map_squares = []   # {rect, target, spawn}
-
-# 🔑 MAP SWITCH COOLDOWN (FIX)
-map_switch_cooldown = 0
-
-# Load tile images
-tile1_img = pygame.image.load(r"Resources/Images/Image_Plot1.png").convert_alpha()
-tile2_img = pygame.image.load(r"Resources/Images/Image_Plot2.png").convert_alpha()
-
-# Load hedge images
-hedgefront_img = pygame.image.load(r"Resources/Images/Image_HedgeFront.png").convert_alpha()
-hedgetopfront_img = pygame.image.load(r"Resources/Images/Image_HedgeTopFront.png").convert_alpha()
-hedgeRD_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerRD.png").convert_alpha()
-hedgeLD_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLD.png").convert_alpha()
-hedgeRT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerRT.png").convert_alpha()
-hedgeLT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLT.png").convert_alpha()
-hedgetopwall_img = pygame.image.load(r"Resources/Images/Image_HedgeTopWall.png").convert_alpha()
-
-# Load walls and floors
-floor_planks_img = pygame.image.load(r"Resources/Floors/Floor_Planks.png").convert_alpha()
-wall_img = pygame.image.load(r"Resources/Walls/Wall.png").convert_alpha()
-wall_front_img = pygame.image.load(r"Resources/Walls/Wall_Front.png").convert_alpha()
-wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Top.png").convert_alpha()
-wall_left_img = pygame.image.load(r"Resources/Walls/Wall_Left.png").convert_alpha()
-wall_right_img = pygame.image.load(r"Resources/Walls/Wall_Right.png").convert_alpha()
-wall_RT_img = pygame.image.load(r"Resources/Walls/Wall_RT.png").convert_alpha()
-wall_LT_img = pygame.image.load(r"Resources/Walls/Wall_LT.png").convert_alpha()
-wall_RD_img = pygame.image.load(r"Resources/Walls/Wall_RD.png").convert_alpha()
-wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()
-
-wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()
-wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()
-
-# Load gravestone images
-grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
-grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
-
-# Scale images
-tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
-tile2_img = pygame.transform.scale(tile2_img, (TILE_SIZE, TILE_SIZE))
-
-hedgefront_img = pygame.transform.scale(hedgefront_img, (TILE_SIZE, TILE_SIZE))
-hedgetopfront_img = pygame.transform.scale(hedgetopfront_img, (TILE_SIZE, TILE_SIZE))
-hedgeRD_img = pygame.transform.scale(hedgeRD_img, (TILE_SIZE, TILE_SIZE))
-hedgeLD_img = pygame.transform.scale(hedgeLD_img, (TILE_SIZE, TILE_SIZE))
-hedgeRT_img = pygame.transform.scale(hedgeRT_img, (TILE_SIZE, TILE_SIZE))
-hedgeLT_img = pygame.transform.scale(hedgeLT_img, (TILE_SIZE, TILE_SIZE))
-hedgetopwall_img = pygame.transform.scale(hedgetopwall_img, (TILE_SIZE, TILE_SIZE))
-
-floor_planks_img = pygame.transform.scale(floor_planks_img, (TILE_SIZE, TILE_SIZE))
-wall_img = pygame.transform.scale(wall_img, (TILE_SIZE, TILE_SIZE))
-wall_front_img = pygame.transform.scale(wall_front_img, (TILE_SIZE, TILE_SIZE))
-wall_top_img = pygame.transform.scale(wall_top_img, (TILE_SIZE, TILE_SIZE))
-wall_left_img = pygame.transform.scale(wall_left_img, (TILE_SIZE, TILE_SIZE))
-wall_right_img = pygame.transform.scale(wall_right_img, (TILE_SIZE, TILE_SIZE))
-wall_RT_img = pygame.transform.scale(wall_RT_img, (TILE_SIZE, TILE_SIZE))
-wall_LT_img = pygame.transform.scale(wall_LT_img, (TILE_SIZE, TILE_SIZE))
-wall_RD_img = pygame.transform.scale(wall_RD_img, (TILE_SIZE, TILE_SIZE))
-wall_LD_img = pygame.transform.scale(wall_LD_img, (TILE_SIZE, TILE_SIZE))
-
-wheat_wall_img = pygame.transform.scale(wheat_wall_img, (TILE_SIZE, TILE_SIZE))
-wheat_wall_top_img = pygame.transform.scale(wheat_wall_top_img, (TILE_SIZE, TILE_SIZE))
-
-gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
-
-# Jamy
-grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
-grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
-
-# Load Well Object
-object_well_img = pygame.image.load(r"Resources/Objects/Object_Well.png").convert_alpha()
-object_well_img = pygame.transform.scale(object_well_img, (TILE_SIZE * 4, TILE_SIZE * 4))
-
-# Load House Object
-object_house_img = pygame.image.load(r"Resources/Objects/Object_House_01.png").convert_alpha()
-object_house_img = pygame.transform.scale(object_house_img, (TILE_SIZE * 7, TILE_SIZE * 7))
-
-# Load Church Object
-object_church_img = pygame.image.load(r"Resources/Objects/Object_Church.png").convert_alpha()
-object_church_img = pygame.transform.scale(object_church_img, (TILE_SIZE * 14, TILE_SIZE * 14))
-
-# Load shop object
-object_shop_img = pygame.image.load(r"Resources/Objects/Object_Zabkas.png").convert_alpha()
-object_shop_img = pygame.transform.scale(object_shop_img, (TILE_SIZE * 7, TILE_SIZE * 7))
-
-# Load tree object
-object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
-object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
-
-# Create graves
-graves = []
-grave_pits = []
+try:
+    from quest import Quest
+except ImportError:
+    class Quest: pass 
+try:
+    from objectZone import ObjectZone
+except ImportError:
+    class ObjectZone: pass
 
 
-# --- MAP SETUP FUNCTION ---
-def setup_map(map_name):
-    global walls, collidable_walls, map_objects, change_map_squares, current_map
+# ==========================================
+# ČASŤ 1: TRIEDY PRE MENU
+# ==========================================
 
-    current_map = map_name
-    map_objects = []
-    change_map_squares = []
-    collidable_walls = []
+class Particle:
+    """Efekt lietajúcich častíc v menu"""
+    def __init__(self, w, h):
+        self.x = random.randint(0, w)
+        self.y = random.randint(0, h)
+        self.size = random.randint(2, 5)
+        self.speed_y = random.uniform(-0.5, -0.1)
+        self.alpha = random.randint(50, 150)
+        self.w, self.h = w, h
 
-    if map_name == "cmitermap":
-        walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
-        player.rect.topleft = (2700, 150)
+    def update(self):
+        self.y += self.speed_y
+        self.alpha -= 0.2
+        if self.y < 0 or self.alpha <= 0:
+            self.y = self.h
+            self.x = random.randint(0, self.w)
+            self.alpha = random.randint(50, 150)
 
-        change_map_squares.append({
-            "rect": pygame.Rect(2800, 100, TILE_SIZE, TILE_SIZE*3),
-            "target": "crossroad",
-            "spawn": (100, 500)
-        })
+    def draw(self, screen):
+        s = pygame.Surface((self.size, self.size))
+        s.set_alpha(self.alpha)
+        s.fill((100, 100, 120))
+        screen.blit(s, (self.x, self.y))
 
-        # Well object
-        well_rect = pygame.Rect(400, 800, TILE_SIZE * 4, TILE_SIZE * 4)
-        map_objects.append({
-            "rect": well_rect,
-            "image": object_well_img,
-            "collidable": True
-        })
+class Button:
+    """Animované tlačidlo"""
+    def __init__(self, text, y, font, action_id):
+        self.text = text
+        self.base_y = y
+        self.font = font
+        self.action_id = action_id
+        self.scale = 1.0
+        self.target_scale = 1.0
+        self.color = (200, 200, 200)
+        self.rect = None
 
-        # Load Tree Object
-        object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
-        object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+    def update(self, mx, my, click):
+        if self.rect and self.rect.collidepoint((mx, my)):
+            self.target_scale = 1.2
+            self.color = (255, 50, 50)
+            if click:
+                return self.action_id
+        else:
+            self.target_scale = 1.0
+            self.color = (200, 200, 200)
 
-        # Trees manually placed across the map
-        tree_positions = [
-            (800, 200), (1200, 400), (1600, 300), (2000, 600), (2400, 200), (2200, 800)
+        self.scale += (self.target_scale - self.scale) * 0.2
+        return None
+
+    def draw(self, screen, width):
+        surf = self.font.render(self.text, True, self.color)
+        new_w = int(surf.get_width() * self.scale)
+        new_h = int(surf.get_height() * self.scale)
+        scaled_surf = pygame.transform.smoothscale(surf, (new_w, new_h))
+        
+        shadow_surf = self.font.render(self.text, True, (0, 0, 0))
+        scaled_shadow = pygame.transform.smoothscale(shadow_surf, (new_w, new_h))
+
+        rect = scaled_surf.get_rect(center=(width // 2, self.base_y))
+        self.rect = rect 
+
+        screen.blit(scaled_shadow, (rect.x + 3, rect.y + 3))
+        screen.blit(scaled_surf, rect)
+
+class MainMenu:
+    def __init__(self, screen):
+        self.screen = screen
+        self.width, self.height = screen.get_size()
+        self.clock = pygame.time.Clock()
+        
+        path = os.path.join("Resources", "Fonts", "upheavtt.ttf")
+        try:
+            self.title_font = pygame.font.Font(path, 70)
+            self.font = pygame.font.Font(path, 40)
+            self.small_font = pygame.font.Font(path, 25)
+        except:
+            self.title_font = pygame.font.SysFont("Arial", 70, bold=True)
+            self.font = pygame.font.SysFont("Arial", 40)
+            self.small_font = pygame.font.SysFont("Arial", 25)
+
+        self.particles = [Particle(self.width, self.height) for _ in range(50)]
+        self.menu_buttons = [
+            Button("PLAY", 300, self.font, "play"),
+            Button("SETTINGS", 380, self.font, "settings"),
+            Button("CREDITS", 460, self.font, "credits"),
+            Button("QUIT", 540, self.font, "quit")
         ]
+        self.volume = 0.5
+        self.dragging_slider = False
 
-        for pos in tree_positions:
-            tree_rect = pygame.Rect(pos[0], pos[1], TILE_SIZE * 7, TILE_SIZE * 7)
-            map_objects.append({
-                "rect": tree_rect,
-                "image": object_tree_img,
+    def draw_background(self):
+        self.screen.fill((15, 10, 20))
+        for p in self.particles:
+            p.update()
+            p.draw(self.screen)
+
+    def draw_slider(self, text, y, value):
+        label = self.font.render(f"{text}: {int(value * 100)}%", True, (255, 255, 255))
+        self.screen.blit(label, (self.width//2 - 200, y))
+        line_rect = pygame.Rect(self.width//2 - 200, y + 40, 400, 4)
+        pygame.draw.rect(self.screen, (100, 100, 100), line_rect)
+        handle_x = line_rect.x + (line_rect.width * value)
+        handle_rect = pygame.Rect(handle_x - 10, y + 30, 20, 24)
+        pygame.draw.rect(self.screen, (255, 215, 0), handle_rect)
+        return handle_rect, line_rect
+
+    def run(self):
+        view = "menu"
+        while True:
+            mx, my = pygame.mouse.get_pos()
+            click = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: click = True
+                if event.type == pygame.MOUSEBUTTONUP: self.dragging_slider = False
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    if view != "menu": view = "menu"
+
+            self.draw_background()
+
+            if view == "menu":
+                offset_y = math.sin(pygame.time.get_ticks() * 0.003) * 10
+                t_surf = self.title_font.render("KTO DRUHEMU JAMU KOPE...", True, (255, 215, 0))
+                t_rect = t_surf.get_rect(center=(self.width // 2, 120 + offset_y))
+                self.screen.blit(t_surf, t_rect)
+
+                for btn in self.menu_buttons:
+                    action = btn.update(mx, my, click)
+                    btn.draw(self.screen, self.width)
+                    if action:
+                        if action == "play": return "play"
+                        elif action == "settings": view = "settings"
+                        elif action == "credits": view = "credits"
+                        elif action == "quit": pygame.quit(); sys.exit()
+
+            elif view == "settings":
+                handle, line = self.draw_slider("Volume", 300, self.volume)
+                if pygame.mouse.get_pressed()[0]:
+                    if handle.collidepoint((mx, my)) or self.dragging_slider:
+                        self.dragging_slider = True
+                        self.volume = max(0.0, min(1.0, (mx - line.x) / line.width))
+                
+                back_btn = Button("BACK", 600, self.font, "back")
+                if back_btn.update(mx, my, click): view = "menu"
+                back_btn.draw(self.screen, self.width)
+
+            elif view == "credits":
+                c_lines = [("CODE", "Ty"), ("ART", "Ty & Assets")]
+                for i, (r, n) in enumerate(c_lines):
+                    self.screen.blit(self.small_font.render(r, True, (150,150,150)), (self.width//2-50, 200+i*60))
+                    self.screen.blit(self.font.render(n, True, (255,255,255)), (self.width//2-50, 230+i*60))
+                
+                back_btn = Button("BACK", 600, self.font, "back")
+                if back_btn.update(mx, my, click): view = "menu"
+                back_btn.draw(self.screen, self.width)
+
+            pygame.display.flip()
+            self.clock.tick(60)
+
+
+# ==========================================
+# ČASŤ 2: LOGIKA HRY (Tvoja hra zabalená vo funkcii)
+# ==========================================
+
+def spustit_hru(screen):
+    """
+    Toto je tvoj herný kód. Keď sa funkcia ukončí (return), vráti sa do menu.
+    """
+    screen_width, screen_height = screen.get_size()
+    clock = pygame.time.Clock()
+    
+    # 1. NAČÍTANIE ZDROJOV (Funkcie a premenné)
+    def load_images_from_folder(folder_path, tile_size):
+        images = {}
+        if not os.path.exists(folder_path): return images
+        for filename in os.listdir(folder_path):
+            if filename.endswith(".png"):
+                key = filename.split("_")[-1].split(".")[0]
+                image = pygame.image.load(os.path.join(folder_path, filename)).convert_alpha()
+                current_height = tile_size * 2 if key == "6" else tile_size
+                image = pygame.transform.scale(image, (tile_size, current_height))
+                images[key] = image
+        return images
+
+    TILE_SIZE = 50
+    maps_manager = MapsManager()
+    fade = Fade(screen, speed=8)
+    
+    # Hráč a GUI
+    player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))
+    camera = Camera(screen_width, screen_height)
+    gui = GUI(screen, player)
+
+    # --- NAČÍTANIE OBRÁZKOV ---
+    try:
+        tile1_img = pygame.image.load(r"Resources/Images/Image_Plot1.png").convert_alpha()
+        tile2_img = pygame.image.load(r"Resources/Images/Image_Plot2.png").convert_alpha()
+        
+        hedgefront_img = pygame.image.load(r"Resources/Images/Image_HedgeFront.png").convert_alpha()
+        hedgetopfront_img = pygame.image.load(r"Resources/Images/Image_HedgeTopFront.png").convert_alpha()
+        hedgeRD_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerRD.png").convert_alpha()
+        hedgeLD_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLD.png").convert_alpha()
+        hedgeRT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerRT.png").convert_alpha()
+        hedgeLT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLT.png").convert_alpha()
+        hedgetopwall_img = pygame.image.load(r"Resources/Images/Image_HedgeTopWall.png").convert_alpha()
+
+        floor_planks_img = pygame.image.load(r"Resources/Floors/Floor_Planks.png").convert_alpha()
+        wall_img = pygame.image.load(r"Resources/Walls/Wall.png").convert_alpha()
+        wall_front_img = pygame.image.load(r"Resources/Walls/Wall_Front.png").convert_alpha()
+        wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Top.png").convert_alpha()
+        wall_left_img = pygame.image.load(r"Resources/Walls/Wall_Left.png").convert_alpha()
+        wall_right_img = pygame.image.load(r"Resources/Walls/Wall_Right.png").convert_alpha()
+        wall_RT_img = pygame.image.load(r"Resources/Walls/Wall_RT.png").convert_alpha()
+        wall_LT_img = pygame.image.load(r"Resources/Walls/Wall_LT.png").convert_alpha()
+        wall_RD_img = pygame.image.load(r"Resources/Walls/Wall_RD.png").convert_alpha()
+        wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()
+
+        wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()
+        wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()
+
+        grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
+        grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
+
+        # Objekty
+        object_well_img = pygame.image.load(r"Resources/Objects/Object_Well.png").convert_alpha()
+        object_house_img = pygame.image.load(r"Resources/Objects/Object_House_01.png").convert_alpha()
+        object_church_img = pygame.image.load(r"Resources/Objects/Object_Church.png").convert_alpha()
+        object_shop_img = pygame.image.load(r"Resources/Objects/Object_Zabkas.png").convert_alpha()
+        object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
+
+    except Exception as e:
+        print(f"CHYBA PRI NAČÍTANÍ OBRÁZKOV: {e}")
+        print("Uistite sa, že priečinok Resources je na správnom mieste.")
+        return # Vráti do menu pri chybe
+
+    # Škálovanie
+    tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
+    tile2_img = pygame.transform.scale(tile2_img, (TILE_SIZE, TILE_SIZE))
+    hedgefront_img = pygame.transform.scale(hedgefront_img, (TILE_SIZE, TILE_SIZE))
+    hedgetopfront_img = pygame.transform.scale(hedgetopfront_img, (TILE_SIZE, TILE_SIZE))
+    hedgeRD_img = pygame.transform.scale(hedgeRD_img, (TILE_SIZE, TILE_SIZE))
+    hedgeLD_img = pygame.transform.scale(hedgeLD_img, (TILE_SIZE, TILE_SIZE))
+    hedgeRT_img = pygame.transform.scale(hedgeRT_img, (TILE_SIZE, TILE_SIZE))
+    hedgeLT_img = pygame.transform.scale(hedgeLT_img, (TILE_SIZE, TILE_SIZE))
+    hedgetopwall_img = pygame.transform.scale(hedgetopwall_img, (TILE_SIZE, TILE_SIZE))
+    floor_planks_img = pygame.transform.scale(floor_planks_img, (TILE_SIZE, TILE_SIZE))
+    wall_img = pygame.transform.scale(wall_img, (TILE_SIZE, TILE_SIZE))
+    wall_front_img = pygame.transform.scale(wall_front_img, (TILE_SIZE, TILE_SIZE))
+    wall_top_img = pygame.transform.scale(wall_top_img, (TILE_SIZE, TILE_SIZE))
+    wall_left_img = pygame.transform.scale(wall_left_img, (TILE_SIZE, TILE_SIZE))
+    wall_right_img = pygame.transform.scale(wall_right_img, (TILE_SIZE, TILE_SIZE))
+    wall_RT_img = pygame.transform.scale(wall_RT_img, (TILE_SIZE, TILE_SIZE))
+    wall_LT_img = pygame.transform.scale(wall_LT_img, (TILE_SIZE, TILE_SIZE))
+    wall_RD_img = pygame.transform.scale(wall_RD_img, (TILE_SIZE, TILE_SIZE))
+    wall_LD_img = pygame.transform.scale(wall_LD_img, (TILE_SIZE, TILE_SIZE))
+    wheat_wall_img = pygame.transform.scale(wheat_wall_img, (TILE_SIZE, TILE_SIZE))
+    wheat_wall_top_img = pygame.transform.scale(wheat_wall_top_img, (TILE_SIZE, TILE_SIZE))
+    
+    grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
+    grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
+    
+    object_well_img = pygame.transform.scale(object_well_img, (TILE_SIZE * 4, TILE_SIZE * 4))
+    object_house_img = pygame.transform.scale(object_house_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+    object_church_img = pygame.transform.scale(object_church_img, (TILE_SIZE * 14, TILE_SIZE * 14))
+    object_shop_img = pygame.transform.scale(object_shop_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+    object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+
+    gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
+
+    # --- SETUP MAPY ---
+    # Používame slovník 'game_data', aby sme mohli meniť premenné vo vnútornej funkcii
+    game_data = {
+        "walls": [],
+        "collidable_walls": [],
+        "map_objects": [],
+        "change_map_squares": [],
+        "current_map": "",
+        "graves": [],
+        "grave_pits": [],
+        "map_switch_cooldown": 0
+    }
+
+    def setup_map(map_name):
+        game_data["current_map"] = map_name
+        game_data["map_objects"] = []
+        game_data["change_map_squares"] = []
+        game_data["collidable_walls"] = []
+
+        if map_name == "cmitermap":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (2700, 150)
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(2800, 100, TILE_SIZE, TILE_SIZE*3),
+                "target": "crossroad",
+                "spawn": (100, 500)
+            })
+
+            # Well object
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(400, 800, TILE_SIZE * 4, TILE_SIZE * 4),
+                "image": object_well_img,
                 "collidable": True
             })
 
+            # Trees
+            tree_positions = [(800, 200), (1200, 400), (1600, 300), (2000, 600), (2400, 200), (2200, 800)]
+            for pos in tree_positions:
+                game_data["map_objects"].append({
+                    "rect": pygame.Rect(pos[0], pos[1], TILE_SIZE * 7, TILE_SIZE * 7),
+                    "image": object_tree_img,
+                    "collidable": True
+                })
 
-    elif map_name == "crossroad":
-        walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
-        player.rect.topleft = (100, 500)
+        elif map_name == "crossroad":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
 
-        # House exit
-        change_map_squares.append({
-            "rect": pygame.Rect(450, 0, TILE_SIZE * 3, TILE_SIZE),
-            "target": "houseplace",
-            "spawn": (350, 650)
-        })
+            # Exits
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(450, 0, TILE_SIZE * 3, TILE_SIZE),
+                "target": "houseplace",
+                "spawn": (350, 650)
+            })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(0, 450, TILE_SIZE, TILE_SIZE * 3),
+                "target": "cmitermap",
+                "spawn": (2700, 150)
+            })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(1000, 450, TILE_SIZE, TILE_SIZE * 3),
+                "target": "village",
+                "spawn": (200, 350)
+            })
 
-        # Cimiter exit
-        change_map_squares.append({
-            "rect": pygame.Rect(0, 450, TILE_SIZE, TILE_SIZE * 3),
-            "target": "cmitermap",
-            "spawn": (2700, 150)
-        })
+        elif map_name == "houseplace":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/houseplace.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (150, 450)
 
-        # Village exit
-        change_map_squares.append({
-            "rect": pygame.Rect(1000, 450, TILE_SIZE, TILE_SIZE * 3),
-            "target": "village",
-            "spawn": (200, 350)
-        })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(300, 750, TILE_SIZE * 3, TILE_SIZE),
+                "target": "crossroad",
+                "spawn": (500, 100)
+            })
 
-    elif map_name == "houseplace":
-        walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/houseplace.txt", TILE_SIZE)
-        player.rect.topleft = (150, 450)
+            # House
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(200, 100, TILE_SIZE * 7, TILE_SIZE * 7),
+                "image": object_house_img,
+                "collidable": True
+            })
+        
+        elif map_name == "village":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/village.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
 
-        change_map_squares.append({
-            "rect": pygame.Rect(300, 750, TILE_SIZE * 3, TILE_SIZE),
-            "target": "crossroad",
-            "spawn": (500, 100)
-        })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(0, 300, TILE_SIZE, TILE_SIZE * 3),
+                "target": "crossroad",
+                "spawn": (900, 500)
+            })
 
-        # House object (CENTER)
-        house_rect = pygame.Rect(200, 100, TILE_SIZE * 7, TILE_SIZE * 7)
+            # Church & Shop
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(600, -400, TILE_SIZE * 14, TILE_SIZE * 14),
+                "image": object_church_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(1400, 0, TILE_SIZE * 7, TILE_SIZE * 7),
+                "image": object_shop_img,
+                "collidable": True
+            })
 
-        map_objects.append({
-            "rect": house_rect,
-            "image": object_house_img,
-            "collidable": True
-        })
-    
-    elif map_name == "village":
-        walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/village.txt", TILE_SIZE)
-        player.rect.topleft = (100, 500)
+        # Pridať objekty do kolízií
+        for obj in game_data["map_objects"]:
+            if obj["collidable"]:
+                game_data["collidable_walls"].append(obj["rect"])
 
-        change_map_squares.append({
-            "rect": pygame.Rect(0, 300, TILE_SIZE, TILE_SIZE * 3),
-            "target": "crossroad",
-            "spawn": (900, 500)
-        })
+    # Spustenie prvej mapy
+    setup_map("cmitermap")
+    fade.fade_in()
 
-        # Load Church on village map
-        church_rect = pygame.Rect(600, -400, TILE_SIZE * 14, TILE_SIZE * 14)
-        map_objects.append({
-            "rect": church_rect,
-            "image": object_church_img,
-            "collidable": True
-        })
+    # --- HERNÁ SLUČKA ---
+    running = True
+    while running:
+        selected_item = gui.get_selected_item()
+        
+        # Cooldown na zmenu mapy
+        if game_data["map_switch_cooldown"] > 0:
+            game_data["map_switch_cooldown"] -= 1
 
-        shop_rect = pygame.Rect(1400, 0, TILE_SIZE * 7, TILE_SIZE * 7)
-        map_objects.append({
-            "rect": shop_rect,
-            "image": object_shop_img,
-            "collidable": True
-        })
+        if game_data["map_switch_cooldown"] == 0:
+            for zone in game_data["change_map_squares"]:
+                if player.rect.colliderect(zone["rect"]):
+                    setup_map(zone["target"])
+                    player.rect.topleft = zone["spawn"]
+                    game_data["graves"] = []
+                    game_data["grave_pits"] = []
+                    game_data["map_switch_cooldown"] = 30
+                    break
 
-    # Add collidable objects
-    for obj in map_objects:
-        if obj["collidable"]:
-            collidable_walls.append(obj["rect"])
+        # Eventy
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return # Vráti sa do Menu!
 
+            if event.type == pygame.MOUSEBUTTONDOWN: 
+                if event.button == 1: 
+                    if selected_item == "[2] Shovel" and game_data["current_map"] == "cmitermap": 
+                        gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
+                        gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                        game_data["graves"].append(Grave(gx, gy, TILE_SIZE, gravestone_images)) 
+                        game_data["grave_pits"].append({ 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }) 
+                elif event.button == 3: 
+                    for pit in game_data["grave_pits"]: pit['state'] = 'opened' 
 
-# INITIAL MAP
-setup_map("cmitermap")
+            gui.handle_input(event)
 
-# Main loop
-is_running = True
-while is_running:
-    selected_item = gui.get_selected_item()
+        # Update
+        player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
+        camera.update(player)
+        fade.update()
 
-    if map_switch_cooldown > 0:
-        map_switch_cooldown -= 1
+        # Draw
+        screen.fill((8, 50, 20))
 
-    if map_switch_cooldown == 0:
-        for zone in change_map_squares:
-            if player.rect.colliderect(zone["rect"]):
-                setup_map(zone["target"])
-                player.rect.topleft = zone["spawn"]
-                graves = []
-                grave_pits = []
-                map_switch_cooldown = 30
-                break
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            is_running = False
-
-        if event.type == pygame.MOUSEBUTTONDOWN: 
-            if event.button == 1: 
-                if selected_item == "[2] Shovel" and current_map == "cmitermap": 
-                    gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
-                    gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
-                    graves.append(Grave(gx, gy, TILE_SIZE, gravestone_images)) 
-                    grave_pits.append({ 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }) 
-            elif event.button == 3: 
-                for pit in grave_pits: pit['state'] = 'opened' 
-
-        gui.handle_input(event)
-
-    player.handle_keys_with_collision(4000, 4000, collidable_walls)
-    camera.update(player)
-
-    screen.fill((8, 50, 20))
-
-    for rect, tile_type in walls:
-        maps_manager.drawTilemap(
-            screen, tile_type, rect, camera,
-            tile1_img, tile2_img,
-            hedgefront_img, hedgetopfront_img,
-            hedgeRD_img, hedgeLD_img,
-            hedgetopwall_img, hedgeLT_img, hedgeRT_img,
-            floor_planks_img,
-            wall_img, wall_front_img, wall_top_img,
-            wall_left_img, wall_right_img,
-            wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img,
-            wheat_wall_img, wheat_wall_top_img
-        )
-
-    for zone in change_map_squares:
-        pygame.draw.rect(screen, (255, 0, 0), camera.apply(zone["rect"]))
-
-    for pit in grave_pits:
-        image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
-        screen.blit(image_to_draw, camera.apply(pit['rect']))
-
-    for grave in graves:
-        grave.draw(screen, camera)
-
-    for obj in map_objects:
-        screen.blit(
-            obj["image"],
-            camera.apply(obj["rect"]).move(
-                0, obj["rect"].height - obj["image"].get_height()
+        # Map tiles
+        for rect, tile_type in game_data["walls"]:
+            maps_manager.drawTilemap(
+                screen, tile_type, rect, camera,
+                tile1_img, tile2_img,
+                hedgefront_img, hedgetopfront_img,
+                hedgeRD_img, hedgeLD_img,
+                hedgetopwall_img, hedgeLT_img, hedgeRT_img,
+                floor_planks_img,
+                wall_img, wall_front_img, wall_top_img,
+                wall_left_img, wall_right_img,
+                wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img,
+                wheat_wall_img, wheat_wall_top_img
             )
-        )
 
-    pygame.draw.rect(screen, player.color, camera.apply(player.rect))
+        # Zones (debug red squares)
+        # for zone in game_data["change_map_squares"]:
+        #    pygame.draw.rect(screen, (255, 0, 0), camera.apply(zone["rect"]))
 
-    gui.draw()
-    pygame.display.flip()
-    clock.tick(60)
+        # Jamy
+        for pit in game_data["grave_pits"]:
+            image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
+            screen.blit(image_to_draw, camera.apply(pit['rect']))
 
-pygame.quit()
+        # Hroby
+        for grave in game_data["graves"]:
+            grave.draw(screen, camera)
+
+        # Objekty
+        for obj in game_data["map_objects"]:
+            screen.blit(
+                obj["image"],
+                camera.apply(obj["rect"]).move(
+                    0, obj["rect"].height - obj["image"].get_height()
+                )
+            )
+
+        # Hráč
+        try: player.draw(screen, camera)
+        except: pygame.draw.rect(screen, player.color, camera.apply(player.rect))
+
+        gui.draw_inventory()
+        # gui.draw() # Ak máš metódu draw v GUI, použi ju
+        fade.draw()
+        
+        pygame.display.flip()
+        clock.tick(60)
+
+
+# ==========================================
+# ČASŤ 3: HLAVNÝ START
+# ==========================================
+
+if __name__ == "__main__":
+    pygame.init()
+    WIDTH, HEIGHT = 1280, 720
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Kto druhému jamu kope...")
+    
+    # 1. Spustíme Menu
+    menu = MainMenu(screen)
+    
+    while True:
+        # Čakáme na výber v menu
+        action = menu.run()
+        
+        if action == "play":
+            # 2. Ak vybral PLAY, spustíme hru
+            spustit_hru(screen)
+            # Keď hra skončí (ESC), cyklus pokračuje a znova zobrazí menu
+            
+        elif action == "quit":
+            pygame.quit()
+            sys.exit()
