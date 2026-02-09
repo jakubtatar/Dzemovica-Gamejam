@@ -19,7 +19,7 @@ def load_images_from_folder(folder_path, tile_size):
     for filename in os.listdir(folder_path):
         if filename.endswith(".png"):
             # Oprava: Ziskame kluc ako string ("1", "6", atd.)
-            key = filename.split("_")[-1].split(".")[0]  
+            key = filename.split("_")[-1].split(".")[0]
 
             image = pygame.image.load(
                 os.path.join(folder_path, filename)
@@ -28,7 +28,7 @@ def load_images_from_folder(folder_path, tile_size):
             # Ak je kluc "6", vyska bude 2-nasobna (100px)
             current_height = tile_size * 2 if key == "6" else tile_size
             image = pygame.transform.scale(image, (tile_size, current_height))
-            images[key] = image # Kluc je uz string a je hashevatelny
+            images[key] = image  # Kluc je uz string a je hashevatelny
 
     return images
 
@@ -46,11 +46,11 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("The pit you dig")
 pygame.display.set_icon(pygame.image.load(r".\Resources\Logo_Small.png"))
 
-
 # Set up clock for controlling FPS
 clock = pygame.time.Clock()
 
 maps_manager = MapsManager()
+
 # Fade effect
 fade = Fade(screen, speed=8)
 
@@ -59,24 +59,17 @@ player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))
 camera = Camera(screen_width, screen_height)
 gui = GUI(screen, player)
 
-
 # Map settings
-current_map = "cmitermap"  # Starting map changed to cmitermap
+current_map = "cmitermap"  # Starting map
 TILE_SIZE = 50
 walls, collidable_walls = [], []
 
-# ChangeMapSquare setup (Initial position for cmitermap)
-change_map_square = pygame.Rect(500, 100, TILE_SIZE, TILE_SIZE)
+# --- MAP OBJECTS & CHANGE ZONES (FUTURE PROOF) ---
+map_objects = []          # {rect, image, collidable}
+change_map_squares = []   # {rect, target, spawn}
 
-if current_map == "cmitermap":
-    walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
-    player.rect.topleft = (400, 300) # Starting position on cemetery
-elif current_map == "crossroad":
-    walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
-    player.rect.topleft = (100, 500)  # Nastavíme poziciu hráča na začiatok cesty
-elif current_map == "house":
-    walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/house.txt", TILE_SIZE)
-    player.rect.topleft = (150, 450)  # Nastavíme poziciu hráča do domu
+# 🔑 MAP SWITCH COOLDOWN (FIX)
+map_switch_cooldown = 0
 
 # Load tile images
 tile1_img = pygame.image.load(r"Resources/Images/Image_Plot1.png").convert_alpha()
@@ -92,39 +85,34 @@ hedgeLT_img = pygame.image.load(r"Resources/Images/Image_HedgeCornerLT.png").con
 hedgetopwall_img = pygame.image.load(r"Resources/Images/Image_HedgeTopWall.png").convert_alpha()
 
 # Load walls and floors
-floor_planks_img = pygame.image.load(r"Resources/Floors/Floor_Planks.png").convert_alpha()  #p
-wall_img = pygame.image.load(r"Resources/Walls/Wall.png").convert_alpha()                   #s
-wall_front_img = pygame.image.load(r"Resources/Walls/Wall_Front.png").convert_alpha()       #f
-wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Top.png").convert_alpha()           #w
-wall_left_img = pygame.image.load(r"Resources/Walls/Wall_Left.png").convert_alpha()         #a
-wall_right_img = pygame.image.load(r"Resources/Walls/Wall_Right.png").convert_alpha()       #d
-wall_RT_img = pygame.image.load(r"Resources/Walls/Wall_RT.png").convert_alpha()             #e
-wall_LT_img = pygame.image.load(r"Resources/Walls/Wall_LT.png").convert_alpha()             #q
-wall_RD_img = pygame.image.load(r"Resources/Walls/Wall_RD.png").convert_alpha()             #c
-wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()             #z
+floor_planks_img = pygame.image.load(r"Resources/Floors/Floor_Planks.png").convert_alpha()
+wall_img = pygame.image.load(r"Resources/Walls/Wall.png").convert_alpha()
+wall_front_img = pygame.image.load(r"Resources/Walls/Wall_Front.png").convert_alpha()
+wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Top.png").convert_alpha()
+wall_left_img = pygame.image.load(r"Resources/Walls/Wall_Left.png").convert_alpha()
+wall_right_img = pygame.image.load(r"Resources/Walls/Wall_Right.png").convert_alpha()
+wall_RT_img = pygame.image.load(r"Resources/Walls/Wall_RT.png").convert_alpha()
+wall_LT_img = pygame.image.load(r"Resources/Walls/Wall_LT.png").convert_alpha()
+wall_RD_img = pygame.image.load(r"Resources/Walls/Wall_RD.png").convert_alpha()
+wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()
 
-wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()       #n
-wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()#m
-
+wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()
+wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()
 
 # Load gravestone images
 grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
 grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
 
-gravestone_images = load_images_from_folder(
-    "Resources/Gravestones",
-    TILE_SIZE
-)
-
-# Optionally scale to TILE_SIZE
+# Scale images
 tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
 tile2_img = pygame.transform.scale(tile2_img, (TILE_SIZE, TILE_SIZE))
+
 hedgefront_img = pygame.transform.scale(hedgefront_img, (TILE_SIZE, TILE_SIZE))
+hedgetopfront_img = pygame.transform.scale(hedgetopfront_img, (TILE_SIZE, TILE_SIZE))
 hedgeRD_img = pygame.transform.scale(hedgeRD_img, (TILE_SIZE, TILE_SIZE))
 hedgeLD_img = pygame.transform.scale(hedgeLD_img, (TILE_SIZE, TILE_SIZE))
 hedgeRT_img = pygame.transform.scale(hedgeRT_img, (TILE_SIZE, TILE_SIZE))
 hedgeLT_img = pygame.transform.scale(hedgeLT_img, (TILE_SIZE, TILE_SIZE))
-hedgetopfront_img = pygame.transform.scale(hedgetopfront_img, (TILE_SIZE, TILE_SIZE))
 hedgetopwall_img = pygame.transform.scale(hedgetopwall_img, (TILE_SIZE, TILE_SIZE))
 
 floor_planks_img = pygame.transform.scale(floor_planks_img, (TILE_SIZE, TILE_SIZE))
@@ -141,111 +129,213 @@ wall_LD_img = pygame.transform.scale(wall_LD_img, (TILE_SIZE, TILE_SIZE))
 wheat_wall_img = pygame.transform.scale(wheat_wall_img, (TILE_SIZE, TILE_SIZE))
 wheat_wall_top_img = pygame.transform.scale(wheat_wall_top_img, (TILE_SIZE, TILE_SIZE))
 
-# Jamy (closed/opened img) budu mat vysku 2-nasobok TILE_SIZE (100px)
+gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
+
+# Jamy
 grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
 grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
 
 # Load Well Object
 object_well_img = pygame.image.load(r"Resources/Objects/Object_Well.png").convert_alpha()
-object_well_img = pygame.transform.scale(object_well_img, (TILE_SIZE * 4, TILE_SIZE * 4)) 
+object_well_img = pygame.transform.scale(object_well_img, (TILE_SIZE * 4, TILE_SIZE * 4))
 
-# # Create graves (20 graves next to each other)
+# Load House Object
+object_house_img = pygame.image.load(r"Resources/Objects/Object_House_01.png").convert_alpha()
+object_house_img = pygame.transform.scale(object_house_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+
+# Load Church Object
+object_church_img = pygame.image.load(r"Resources/Objects/Object_Church.png").convert_alpha()
+object_church_img = pygame.transform.scale(object_church_img, (TILE_SIZE * 14, TILE_SIZE * 14))
+
+# Load shop object
+object_shop_img = pygame.image.load(r"Resources/Objects/Object_Zabkas.png").convert_alpha()
+object_shop_img = pygame.transform.scale(object_shop_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+
+# Create graves
 graves = []
-grave_pits = [] 
+grave_pits = []
 
-#Map specific objects
-well_rect = pygame.Rect(400, 800, TILE_SIZE * 4, TILE_SIZE * 4) 
+
+# --- MAP SETUP FUNCTION ---
+def setup_map(map_name):
+    global walls, collidable_walls, map_objects, change_map_squares, current_map
+
+    current_map = map_name
+    map_objects = []
+    change_map_squares = []
+    collidable_walls = []
+
+    if map_name == "cmitermap":
+        walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
+        player.rect.topleft = (2700, 150)
+
+        change_map_squares.append({
+            "rect": pygame.Rect(2800, 100, TILE_SIZE, TILE_SIZE*3),
+            "target": "crossroad",
+            "spawn": (100, 500)
+        })
+
+        # Well object
+        well_rect = pygame.Rect(400, 800, TILE_SIZE * 4, TILE_SIZE * 4)
+        map_objects.append({
+            "rect": well_rect,
+            "image": object_well_img,
+            "collidable": True
+        })
+
+    elif map_name == "crossroad":
+        walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
+        player.rect.topleft = (100, 500)
+
+        # House exit
+        change_map_squares.append({
+            "rect": pygame.Rect(450, 0, TILE_SIZE * 3, TILE_SIZE),
+            "target": "houseplace",
+            "spawn": (350, 650)
+        })
+
+        # Cimiter exit
+        change_map_squares.append({
+            "rect": pygame.Rect(0, 450, TILE_SIZE, TILE_SIZE * 3),
+            "target": "cmitermap",
+            "spawn": (2700, 150)
+        })
+
+        # Village exit
+        change_map_squares.append({
+            "rect": pygame.Rect(1000, 450, TILE_SIZE, TILE_SIZE * 3),
+            "target": "village",
+            "spawn": (200, 350)
+        })
+
+    elif map_name == "houseplace":
+        walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/houseplace.txt", TILE_SIZE)
+        player.rect.topleft = (150, 450)
+
+        change_map_squares.append({
+            "rect": pygame.Rect(300, 750, TILE_SIZE * 3, TILE_SIZE),
+            "target": "crossroad",
+            "spawn": (500, 100)
+        })
+
+        # House object (CENTER)
+        house_rect = pygame.Rect(200, 100, TILE_SIZE * 7, TILE_SIZE * 7)
+
+        map_objects.append({
+            "rect": house_rect,
+            "image": object_house_img,
+            "collidable": True
+        })
+    
+    elif map_name == "village":
+        walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/village.txt", TILE_SIZE)
+        player.rect.topleft = (100, 500)
+
+        change_map_squares.append({
+            "rect": pygame.Rect(0, 300, TILE_SIZE, TILE_SIZE * 3),
+            "target": "crossroad",
+            "spawn": (900, 500)
+        })
+
+        # Load Church on village map
+        church_rect = pygame.Rect(600, -400, TILE_SIZE * 14, TILE_SIZE * 14)
+        map_objects.append({
+            "rect": church_rect,
+            "image": object_church_img,
+            "collidable": True
+        })
+
+        shop_rect = pygame.Rect(1400, 0, TILE_SIZE * 7, TILE_SIZE * 7)
+        map_objects.append({
+            "rect": shop_rect,
+            "image": object_shop_img,
+            "collidable": True
+        })
+
+    # Add collidable objects
+    for obj in map_objects:
+        if obj["collidable"]:
+            collidable_walls.append(obj["rect"])
+
+
+# INITIAL MAP
+setup_map("cmitermap")
 
 # Main loop
 is_running = True
-
 while is_running:
     selected_item = gui.get_selected_item()
-    
-    # Check for map change collision
-    if player.rect.colliderect(change_map_square):
-        if current_map == "cmitermap":
-            current_map = "crossroad"
-            walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
-            player.rect.topleft = (100, 500)
-            change_map_square = pygame.Rect(450, 0, TILE_SIZE*3, TILE_SIZE)
-        elif current_map == "crossroad":
-            current_map = "house"
-            walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/house.txt", TILE_SIZE)
-            player.rect.topleft = (150, 450)
-            change_map_square = pygame.Rect(150, 550, TILE_SIZE, TILE_SIZE) # New trigger for exit
-        elif current_map == "house":
-            current_map = "crossroad"
-            walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
-            player.rect.topleft = (500, 100)
-            change_map_square = pygame.Rect(450, 0, TILE_SIZE*3, TILE_SIZE)
-        
-        # Clear map specific entities
-        graves = []
-        grave_pits = []
+
+    if map_switch_cooldown > 0:
+        map_switch_cooldown -= 1
+
+    if map_switch_cooldown == 0:
+        for zone in change_map_squares:
+            if player.rect.colliderect(zone["rect"]):
+                setup_map(zone["target"])
+                player.rect.topleft = zone["spawn"]
+                graves = []
+                grave_pits = []
+                map_switch_cooldown = 30
+                break
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # Left click (kopanie)
-                if selected_item == "[2] Shovel":
-                    gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE
-                    gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE
-                    graves.append(Grave(gx, gy, TILE_SIZE, gravestone_images))
-                    grave_pits.append({'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed'})
-                    print(f"Hrob vytvorený na {gx}, {gy}")
-            
-            elif event.button == 3: # Right click (otvaranie)
-                for pit in grave_pits:
-                    pit['state'] = 'opened'
-                print("Vsetky jamy otvorene!")
-
+        if event.type == pygame.MOUSEBUTTONDOWN: 
+            if event.button == 1: 
+                if selected_item == "[2] Shovel" and current_map == "cmitermap": 
+                    gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
+                    gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                    graves.append(Grave(gx, gy, TILE_SIZE, gravestone_images)) 
+                    grave_pits.append({ 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }) 
+            elif event.button == 3: 
+                for pit in grave_pits: pit['state'] = 'opened' 
 
         gui.handle_input(event)
 
-
-    # Update player and camera
     player.handle_keys_with_collision(4000, 4000, collidable_walls)
     camera.update(player)
 
-    # CLEAR SCREEN FIRST
     screen.fill((8, 50, 20))
 
-    # Draw tiles from the bitmapmap
     for rect, tile_type in walls:
-        maps_manager.drawTilemap(screen, tile_type, rect, camera, tile1_img, tile2_img, hedgefront_img, hedgetopfront_img, hedgeRD_img, hedgeLD_img, hedgetopwall_img, hedgeLT_img, hedgeRT_img, floor_planks_img, wall_img, wall_front_img, wall_top_img, wall_left_img, wall_right_img, wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img, wheat_wall_img, wheat_wall_top_img)
+        maps_manager.drawTilemap(
+            screen, tile_type, rect, camera,
+            tile1_img, tile2_img,
+            hedgefront_img, hedgetopfront_img,
+            hedgeRD_img, hedgeLD_img,
+            hedgetopwall_img, hedgeLT_img, hedgeRT_img,
+            floor_planks_img,
+            wall_img, wall_front_img, wall_top_img,
+            wall_left_img, wall_right_img,
+            wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img,
+            wheat_wall_img, wheat_wall_top_img
+        )
 
-    # Draw ChangeMapSquare (The red trigger)
-    pygame.draw.rect(screen, (255, 0, 0), camera.apply(change_map_square))
+    for zone in change_map_squares:
+        pygame.draw.rect(screen, (255, 0, 0), camera.apply(zone["rect"]))
 
-    # Draw closed grave pits (Vykreslujeme prve, aby boli pod hrobmi)
     for pit in grave_pits:
         image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
         screen.blit(image_to_draw, camera.apply(pit['rect']))
 
-     # Draw graves
     for grave in graves:
         grave.draw(screen, camera)
-        
-    # Draw the well object (Posunieme Y suradnicu blitovania o vysku objektu, aby sedel na 800y)
-    if current_map == "cmitermap":
-        # Add well to collisions if not already there
-        if well_rect not in collidable_walls:
-            collidable_walls.append(well_rect) 
-        screen.blit(object_well_img, camera.apply(well_rect).move(0, well_rect.height - object_well_img.get_height()))
 
-    # Draw player
-    pygame.draw.rect(
-        screen,
-        player.color,
-        camera.apply(player.rect)
-    )
+    for obj in map_objects:
+        screen.blit(
+            obj["image"],
+            camera.apply(obj["rect"]).move(
+                0, obj["rect"].height - obj["image"].get_height()
+            )
+        )
+
+    pygame.draw.rect(screen, player.color, camera.apply(player.rect))
 
     gui.draw()
     pygame.display.flip()
     clock.tick(60)
 
-# Quit Pygame
 pygame.quit()
