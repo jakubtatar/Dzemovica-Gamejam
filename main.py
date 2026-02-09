@@ -151,6 +151,10 @@ object_church_img = pygame.transform.scale(object_church_img, (TILE_SIZE * 14, T
 object_shop_img = pygame.image.load(r"Resources/Objects/Object_Zabkas.png").convert_alpha()
 object_shop_img = pygame.transform.scale(object_shop_img, (TILE_SIZE * 7, TILE_SIZE * 7))
 
+# Load tree object
+object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
+object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+
 # Create graves
 graves = []
 grave_pits = []
@@ -182,6 +186,24 @@ def setup_map(map_name):
             "image": object_well_img,
             "collidable": True
         })
+
+        # Load Tree Object
+        object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
+        object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+
+        # Trees manually placed across the map
+        tree_positions = [
+            (800, 200), (1200, 400), (1600, 300), (2000, 600), (2400, 200), (2200, 800)
+        ]
+
+        for pos in tree_positions:
+            tree_rect = pygame.Rect(pos[0], pos[1], TILE_SIZE * 7, TILE_SIZE * 7)
+            map_objects.append({
+                "rect": tree_rect,
+                "image": object_tree_img,
+                "collidable": True
+            })
+
 
     elif map_name == "crossroad":
         walls, collidable_walls = maps_manager.load_map(r"Resources/Bitmaps/crossroad.txt", TILE_SIZE)
