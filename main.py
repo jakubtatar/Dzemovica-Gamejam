@@ -466,7 +466,7 @@ def spustit_hru(screen):
         return images
 
 <<<<<<< HEAD
-    gui.draw()
+gui.draw()
 
     # Draw pause menu if game is paused
 
