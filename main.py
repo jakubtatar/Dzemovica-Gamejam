@@ -99,7 +99,6 @@ class Button:
         self.scale += (self.target_scale - self.scale) * 0.2
         return None
 
-<<<<<<< HEAD
 # Set up display
 screen_width, screen_height = 800, 600
 screen = pygame.display.set_mode((screen_width, screen_height))
@@ -328,13 +327,11 @@ while is_running:
         grave.draw(screen, camera)
 
    
-=======
-    def draw(self, screen, width):
+def draw(self, screen, width):
         surf = self.font.render(self.text, True, self.color)
         new_w = int(surf.get_width() * self.scale)
         new_h = int(surf.get_height() * self.scale)
         scaled_surf = pygame.transform.smoothscale(surf, (new_w, new_h))
->>>>>>> main
         
         shadow_surf = self.font.render(self.text, True, (0, 0, 0))
         scaled_shadow = pygame.transform.smoothscale(shadow_surf, (new_w, new_h))
@@ -465,7 +462,6 @@ def spustit_hru(screen):
                 images[key] = image
         return images
 
-<<<<<<< HEAD
 gui.draw()
 
     # Draw pause menu if game is paused
@@ -473,7 +469,7 @@ gui.draw()
   
 
 # 2. V časti, kde kreslíš pauzu (okolo riadku 280)
-    if game_paused:
+if game_paused:
         # Voláme GUI a ukladáme vrátenú hodnotu
         result = gui.draw_pause_menu(screen, pause_view, mouse_click)
 
@@ -488,17 +484,16 @@ gui.draw()
         elif result is not None:
             # Ak result je napr. "settings", pause_view sa prepne a menu sa zmení
             pause_view = result
-    pygame.display.flip()
-    clock.tick(60)
+pygame.display.flip()
+clock.tick(60)
 
 
 
 # Quit Pygame
 pygame.quit()
-=======
-    TILE_SIZE = 50
-    maps_manager = MapsManager()
-    fade = Fade(screen, speed=8)
+TILE_SIZE = 50
+maps_manager = MapsManager()
+fade = Fade(screen, speed=8)
     
     # Hráč a GUI
     player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))
@@ -803,7 +798,6 @@ pygame.quit()
 # ==========================================
 # ČASŤ 3: HLAVNÝ START
 # ==========================================
-
 if __name__ == "__main__":
     pygame.init()
     WIDTH, HEIGHT = 1280, 720
@@ -825,4 +819,3 @@ if __name__ == "__main__":
         elif action == "quit":
             pygame.quit()
             sys.exit()
->>>>>>> main
