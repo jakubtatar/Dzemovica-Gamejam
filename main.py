@@ -493,8 +493,8 @@ clock.tick(60)
 # Quit Pygame
 pygame.quit()
 TILE_SIZE = 50
-maps_manager = MapsManager()
-fade = Fade(screen, speed=8)
+ maps_manager = MapsManager()
+ fade = Fade(screen, speed=8)
     
     # Hráč a GUI
     player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))

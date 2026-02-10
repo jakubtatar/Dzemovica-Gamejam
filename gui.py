@@ -2,11 +2,8 @@ import pygame
 import time
 
 class GUI:
-<<<<<<< HEAD
    
-=======
 
->>>>>>> main
     def __init__(self, screen, player):
         self.screen = screen
         self.player = player
@@ -21,11 +18,8 @@ class GUI:
         # inventory
         self.inventory = ["[1] Sword", "[2] Shovel", "[3] Holy water", "[4] Cross"]
         self.selected_index = 0
-<<<<<<< HEAD
 
-=======
     
->>>>>>> main
     def draw_outlined_text(
         self,
         text,
