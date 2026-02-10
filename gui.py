@@ -41,10 +41,32 @@ class GUI:
     
     def handle_input(self, event):
         if event.type == pygame.KEYDOWN:
+<<<<<<< Updated upstream
             if event.key == pygame.K_e:
                 self.selected_index = (self.selected_index + 1) % len(self.inventory)
             elif event.key == pygame.K_q:
                 self.selected_index = (self.selected_index - 1) % len(self.inventory)
+=======
+            # Priamy výber klávesmi 1 až 9
+            if event.key == pygame.K_1 or event.key == pygame.K_KP1:
+                self.selected_index = 0
+            elif event.key == pygame.K_2 or event.key == pygame.K_KP2:
+                self.selected_index = 1
+            elif event.key == pygame.K_3 or event.key == pygame.K_KP3:
+                self.selected_index = 2
+            elif event.key == pygame.K_4 or event.key == pygame.K_KP4:
+                self.selected_index = 3
+            elif event.key == pygame.K_5 or event.key == pygame.K_KP5:
+                self.selected_index = 4
+            elif event.key == pygame.K_6 or event.key == pygame.K_KP6:
+                self.selected_index = 5
+            elif event.key == pygame.K_7 or event.key == pygame.K_KP7:
+                self.selected_index = 6
+            elif event.key == pygame.K_8 or event.key == pygame.K_KP8:
+                self.selected_index = 7
+            elif event.key == pygame.K_9 or event.key == pygame.K_KP9:
+                self.selected_index = 8
+>>>>>>> Stashed changes
 
     def get_selected_item(self):
         return self.inventory[self.selected_index]
@@ -74,6 +96,7 @@ class GUI:
         )
 
     def draw_inventory(self):
+        item_index = 1
         screen_width, screen_height = self.screen.get_size()
         padding = 10
         x = screen_width - padding
@@ -83,8 +106,8 @@ class GUI:
             item = self.inventory[i]
             color = (255, 0, 0) if i == self.selected_index else (255, 255, 255)
 
-            text_surf = self.font.render(item, True, color)
-            outline_surf = self.font.render(item, True, (0, 0, 0))
+            text_surf = self.font.render(f"[{item_index}] {item}", True, color)
+            outline_surf = self.font.render(f"[{item_index}] {item}", True, (0, 0, 0))
 
             rect = text_surf.get_rect(bottomright=(x, y))
 
@@ -95,6 +118,7 @@ class GUI:
 
             self.screen.blit(text_surf, rect)
             y -= rect.height + 5
+            item_index += 1
 
     def draw(self):
         self.draw_health()

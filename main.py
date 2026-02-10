@@ -161,6 +161,7 @@ while is_running:
         if event.type == pygame.QUIT:
             is_running = False
 
+<<<<<<< Updated upstream
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left click (kopanie)
                 if selected_item == "Shovel":
@@ -175,6 +176,17 @@ while is_running:
                     pit['state'] = 'opened'
                 print("Vsetky jamy otvorene!")
 
+=======
+        if event.type == pygame.MOUSEBUTTONDOWN: 
+            if event.button == 1: 
+                if selected_item == "Shovel" and current_map == "cmitermap": 
+                    gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
+                    gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                    graves.append(Grave(gx, gy, TILE_SIZE, gravestone_images)) 
+                    grave_pits.append({ 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }) 
+            elif event.button == 3: 
+                for pit in grave_pits: pit['state'] = 'opened' 
+>>>>>>> Stashed changes
 
         gui.handle_input(event)
 
