@@ -13,6 +13,7 @@ from grave import Grave
 from dialogue import Dialogue
 from mapsmanager import MapsManager
 from item import Item
+from graveDigMinigame import GraveDigMinigame
 
 # --- ZÁCHRANNÉ TRIEDY (AK CHÝBA PLAYER ALEBO QUEST) ---
 try:
@@ -327,8 +328,12 @@ def spustit_hru(screen):
         "map_objects": [],
         "change_map_squares": [],
         "current_map": "",
-        "graves": [],
-        "grave_pits": [],
+        "graves": [],       # Aktuálne zobrazené hroby
+        "grave_pits": [],   # Aktuálne zobrazené jamy
+        
+        "persistent_graves": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
+        "persistent_pits": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
+        
         "map_switch_cooldown": 0
     }
 
@@ -363,7 +368,7 @@ def spustit_hru(screen):
                 game_data["map_objects"].append({
                     "rect": pygame.Rect(pos[0], pos[1], TILE_SIZE * 7, TILE_SIZE * 7),
                     "image": object_tree_img,
-                    "collidable": True
+                    "collidable": False
                 })
 
         elif map_name == "crossroad":
@@ -447,16 +452,31 @@ def spustit_hru(screen):
         selected_item = gui.get_selected_item()
         
         # Cooldown na zmenu mapy
+        # --- LOGIKA ZMENY MAPY (UKLADANIE A NAČÍTANIE) ---
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1
 
         if game_data["map_switch_cooldown"] == 0:
             for zone in game_data["change_map_squares"]:
                 if player.rect.colliderect(zone["rect"]):
-                    setup_map(zone["target"])
+                    # A. ULOŽÍME hroby STAREJ mapy do archívu
+                    stara_mapa = game_data["current_map"]
+                    game_data["persistent_graves"][stara_mapa] = game_data["graves"]
+                    game_data["persistent_pits"][stara_mapa] = game_data["grave_pits"]
+
+                    # B. ZMENÍME MAPU (klasický tvoj kód)
+                    nova_mapa = zone["target"]
+                    setup_map(nova_mapa)
                     player.rect.topleft = zone["spawn"]
-                    game_data["graves"] = []
-                    game_data["grave_pits"] = []
+
+                    # C. NAČÍTAME hroby NOVEJ mapy z archívu
+                    game_data["graves"] = game_data["persistent_graves"].get(nova_mapa, [])
+                    game_data["grave_pits"] = game_data["persistent_pits"].get(nova_mapa, [])
+
+                    # D. OBNOVA KOLÍZIÍ (aby si cez staré hroby neprešiel)
+                    for pit in game_data["grave_pits"]:
+                        game_data["collidable_walls"].append(pit['rect'])
+
                     game_data["map_switch_cooldown"] = 30
                     break
 
@@ -470,13 +490,35 @@ def spustit_hru(screen):
                     return # Vráti sa do Menu!
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
-                if event.button == 1: 
-                    if selected_item == "[2] Shovel" and game_data["current_map"] == "cmitermap": 
-                        gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
-                        gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
-                        game_data["graves"].append(Grave(gx, gy, TILE_SIZE, gravestone_images)) 
-                        game_data["grave_pits"].append({ 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }) 
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: 
+                    if selected_item == "[2] Shovel":
+                        # KOPANIE JE POVOLENÉ LEN NA CMITERMAP
+                        if game_data["current_map"] == "cmitermap":
+                            minigame = GraveDigMinigame(screen)
+                            reward = minigame.run()
+                            
+                            if not hasattr(player, 'money'): player.money = 0
+                            player.money += reward
+
+                            gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
+                            gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                            
+                            # Vytvoríme nový hrob a jamu
+                            new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
+                            new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
+                            
+                            # Pridáme ich do aktuálneho zoznamu
+                            game_data["graves"].append(new_grave) 
+                            game_data["grave_pits"].append(new_pit)
+                            
+                            # Pridáme kolíziu, aby bol hrob prekážkou
+                            game_data["collidable_walls"].append(new_pit['rect'])
+                        else:
+                            print("Pôda je tu príliš tvrdá na kopanie. Skús to na cintoríne!")
+
+                
                 elif event.button == 3: 
+                    # (Tvoja pôvodná logika pre pravý klik)
                     for pit in game_data["grave_pits"]: pit['state'] = 'opened' 
 
             gui.handle_input(event)
@@ -508,12 +550,12 @@ def spustit_hru(screen):
         # for zone in game_data["change_map_squares"]:
         #    pygame.draw.rect(screen, (255, 0, 0), camera.apply(zone["rect"]))
 
-        # Jamy
+        # Vykreslenie jám
         for pit in game_data["grave_pits"]:
             image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
             screen.blit(image_to_draw, camera.apply(pit['rect']))
 
-        # Hroby
+        # Vykreslenie hrobov (náhrobkov)
         for grave in game_data["graves"]:
             grave.draw(screen, camera)
 
