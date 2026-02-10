@@ -492,29 +492,37 @@ def spustit_hru(screen):
             if event.type == pygame.MOUSEBUTTONDOWN: 
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: 
                     if selected_item == "[2] Shovel":
-                        # KOPANIE JE POVOLENÉ LEN NA CMITERMAP
                         if game_data["current_map"] == "cmitermap":
+                            # 1. Spustíme minihru
                             minigame = GraveDigMinigame(screen)
-                            reward = minigame.run()
-                            
-                            if not hasattr(player, 'money'): player.money = 0
-                            player.money += reward
+                            reward = minigame.run() # Tu sa vráti buď peniaze (výhra) alebo 0 (prehra)
 
-                            gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
-                            gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
-                            
-                            # Vytvoríme nový hrob a jamu
-                            new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
-                            new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
-                            
-                            # Pridáme ich do aktuálneho zoznamu
-                            game_data["graves"].append(new_grave) 
-                            game_data["grave_pits"].append(new_pit)
-                            
-                            # Pridáme kolíziu, aby bol hrob prekážkou
-                            game_data["collidable_walls"].append(new_pit['rect'])
+                            # 2. Kontrola úspechu
+                            if reward > 0:
+                                # HRÁČ VYHRAL - Pripíšeme peniaze a vytvoríme hrob
+                                if not hasattr(player, 'money'): 
+                                    player.money = 0
+                                
+                                player.money += reward
+                                print(f"Úspech! Zarobil si: {reward}$")
+
+                                # Výpočet pozície hrobu
+                                gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
+                                gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                                
+                                # Pridanie do zoznamov
+                                new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
+                                new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
+                                
+                                game_data["graves"].append(new_grave) 
+                                game_data["grave_pits"].append(new_pit)
+                                game_data["collidable_walls"].append(new_pit['rect'])
+                            else:
+                                # HRÁČ PREHRAL (Timer vypršal alebo stlačil ESC)
+                                print("Nič si nevykopal. Skús to znova a rýchlejšie!")
+                                
                         else:
-                            print("Pôda je tu príliš tvrdá na kopanie. Skús to na cintoríne!")
+                            print("Tu sa kopať nedá!")
 
                 
                 elif event.button == 3: 
