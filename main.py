@@ -4,8 +4,7 @@ import os
 import math
 import random
 
-# --- IMPORTY TVOJICH SÚBOROV ---
-# (Tieto súbory musia byť v rovnakom priečinku ako main.py)
+# --- IMPORTY TVOJICH EXISTUJÚCICH SÚBOROV ---
 from camera import Camera
 from gui import GUI
 from fade import Fade
@@ -13,7 +12,6 @@ from grave import Grave
 from dialogue import Dialogue
 from mapsmanager import MapsManager
 from item import Item
-<<<<<<< HEAD
 
 try:
     from graveDigMinigame import GraveDigMinigame
@@ -22,9 +20,6 @@ except ImportError:
     class GraveDigMinigame:
         def __init__(self, screen): pass
         def run(self): return 10
-=======
-from graveDigMinigame import GraveDigMinigame
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
 
 # --- ZÁCHRANNÉ TRIEDY ---
 try:
@@ -59,171 +54,7 @@ except ImportError:
 
 
 # ==========================================
-# ČASŤ 1: TRIEDY PRE MENU
-# ==========================================
-
-class Particle:
-    """Efekt lietajúcich častíc v menu"""
-    def __init__(self, w, h):
-        self.x = random.randint(0, w)
-        self.y = random.randint(0, h)
-        self.size = random.randint(2, 5)
-        self.speed_y = random.uniform(-0.5, -0.1)
-        self.alpha = random.randint(50, 150)
-        self.w, self.h = w, h
-
-    def update(self):
-        self.y += self.speed_y
-        self.alpha -= 0.2
-        if self.y < 0 or self.alpha <= 0:
-            self.y = self.h
-            self.x = random.randint(0, self.w)
-            self.alpha = random.randint(50, 150)
-
-    def draw(self, screen):
-        s = pygame.Surface((self.size, self.size))
-        s.set_alpha(self.alpha)
-        s.fill((100, 100, 120))
-        screen.blit(s, (self.x, self.y))
-
-class Button:
-    """Animované tlačidlo"""
-    def __init__(self, text, y, font, action_id):
-        self.text = text
-        self.base_y = y
-        self.font = font
-        self.action_id = action_id
-        self.scale = 1.0
-        self.target_scale = 1.0
-        self.color = (200, 200, 200)
-        self.rect = None
-
-    def update(self, mx, my, click):
-        if self.rect and self.rect.collidepoint((mx, my)):
-            self.target_scale = 1.2
-            self.color = (255, 50, 50)
-            if click:
-                return self.action_id
-        else:
-            self.target_scale = 1.0
-            self.color = (200, 200, 200)
-
-        self.scale += (self.target_scale - self.scale) * 0.2
-        return None
-
-    def draw(self, screen, width):
-        surf = self.font.render(self.text, True, self.color)
-        new_w = int(surf.get_width() * self.scale)
-        new_h = int(surf.get_height() * self.scale)
-        scaled_surf = pygame.transform.smoothscale(surf, (new_w, new_h))
-        
-        shadow_surf = self.font.render(self.text, True, (0, 0, 0))
-        scaled_shadow = pygame.transform.smoothscale(shadow_surf, (new_w, new_h))
-
-        rect = scaled_surf.get_rect(center=(width // 2, self.base_y))
-        self.rect = rect 
-
-        screen.blit(scaled_shadow, (rect.x + 3, rect.y + 3))
-        screen.blit(scaled_surf, rect)
-
-class MainMenu:
-    def __init__(self, screen):
-        self.screen = screen
-        self.width, self.height = screen.get_size()
-        self.clock = pygame.time.Clock()
-        
-        path = os.path.join("Resources", "Fonts", "upheavtt.ttf")
-        try:
-            self.title_font = pygame.font.Font(path, 70)
-            self.font = pygame.font.Font(path, 40)
-            self.small_font = pygame.font.Font(path, 25)
-        except:
-            self.title_font = pygame.font.SysFont("Arial", 70, bold=True)
-            self.font = pygame.font.SysFont("Arial", 40)
-            self.small_font = pygame.font.SysFont("Arial", 25)
-
-        self.particles = [Particle(self.width, self.height) for _ in range(50)]
-        self.menu_buttons = [
-            Button("PLAY", 300, self.font, "play"),
-            Button("SETTINGS", 380, self.font, "settings"),
-            Button("CREDITS", 460, self.font, "credits"),
-            Button("QUIT", 540, self.font, "quit")
-        ]
-        self.volume = 0.5
-        self.dragging_slider = False
-
-    def draw_background(self):
-        self.screen.fill((15, 10, 20))
-        for p in self.particles:
-            p.update()
-            p.draw(self.screen)
-
-    def draw_slider(self, text, y, value):
-        label = self.font.render(f"{text}: {int(value * 100)}%", True, (255, 255, 255))
-        self.screen.blit(label, (self.width//2 - 200, y))
-        line_rect = pygame.Rect(self.width//2 - 200, y + 40, 400, 4)
-        pygame.draw.rect(self.screen, (100, 100, 100), line_rect)
-        handle_x = line_rect.x + (line_rect.width * value)
-        handle_rect = pygame.Rect(handle_x - 10, y + 30, 20, 24)
-        pygame.draw.rect(self.screen, (255, 215, 0), handle_rect)
-        return handle_rect, line_rect
-
-    def run(self):
-        view = "menu"
-        while True:
-            mx, my = pygame.mouse.get_pos()
-            click = False
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT: pygame.quit(); sys.exit()
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: click = True
-                if event.type == pygame.MOUSEBUTTONUP: self.dragging_slider = False
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    if view != "menu": view = "menu"
-
-            self.draw_background()
-
-            if view == "menu":
-                offset_y = math.sin(pygame.time.get_ticks() * 0.003) * 10
-                t_surf = self.title_font.render("KTO DRUHEMU JAMU KOPE...", True, (255, 215, 0))
-                t_rect = t_surf.get_rect(center=(self.width // 2, 120 + offset_y))
-                self.screen.blit(t_surf, t_rect)
-
-                for btn in self.menu_buttons:
-                    action = btn.update(mx, my, click)
-                    btn.draw(self.screen, self.width)
-                    if action:
-                        if action == "play": return "play"
-                        elif action == "settings": view = "settings"
-                        elif action == "credits": view = "credits"
-                        elif action == "quit": pygame.quit(); sys.exit()
-
-            elif view == "settings":
-                handle, line = self.draw_slider("Volume", 300, self.volume)
-                if pygame.mouse.get_pressed()[0]:
-                    if handle.collidepoint((mx, my)) or self.dragging_slider:
-                        self.dragging_slider = True
-                        self.volume = max(0.0, min(1.0, (mx - line.x) / line.width))
-                
-                back_btn = Button("BACK", 600, self.font, "back")
-                if back_btn.update(mx, my, click): view = "menu"
-                back_btn.draw(self.screen, self.width)
-
-            elif view == "credits":
-                c_lines = [("CODE", "Ty"), ("ART", "Ty & Assets")]
-                for i, (r, n) in enumerate(c_lines):
-                    self.screen.blit(self.small_font.render(r, True, (150,150,150)), (self.width//2-50, 200+i*60))
-                    self.screen.blit(self.font.render(n, True, (255,255,255)), (self.width//2-50, 230+i*60))
-                
-                back_btn = Button("BACK", 600, self.font, "back")
-                if back_btn.update(mx, my, click): view = "menu"
-                back_btn.draw(self.screen, self.width)
-
-            pygame.display.flip()
-            self.clock.tick(60)
-
-
-# ==========================================
-# ČASŤ 2: LOGIKA HRY (Tvoja hra zabalená vo funkcii)
+# HLAVNÁ FUNKCIA HRY
 # ==========================================
 
 def spustit_hru(screen):
@@ -328,22 +159,14 @@ def spustit_hru(screen):
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
     # --- SETUP MAPY ---
-    # Používame slovník 'game_data', aby sme mohli meniť premenné vo vnútornej funkcii
     game_data = {
         "walls": [],
         "collidable_walls": [],
         "map_objects": [],
         "change_map_squares": [],
         "current_map": "",
-<<<<<<< HEAD
         "graves": [],       
         "grave_pits": [],   
-        "enemies": [], # Zoznam pre červených nepriateľov
-=======
-        "graves": [],       # Aktuálne zobrazené hroby
-        "grave_pits": [],   # Aktuálne zobrazené jamy
-        
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
         "persistent_graves": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "persistent_pits": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "map_switch_cooldown": 0
@@ -354,8 +177,6 @@ def spustit_hru(screen):
         game_data["map_objects"] = []
         game_data["change_map_squares"] = []
         game_data["collidable_walls"] = []
-        # Vymažeme nepriateľov pri zmene mapy
-        game_data["enemies"] = []
 
         if map_name == "cmitermap":
             w, c = maps_manager.load_map(r"Resources/Bitmaps/cmitermap.txt", TILE_SIZE)
@@ -445,6 +266,8 @@ def spustit_hru(screen):
         # Objekty do kolízií (len kolidovateľné)
         for obj in game_data["map_objects"]:
             if obj["collidable"]:
+                # Pri stromoch a budovách chceme, aby kolízia bola len spodná časť
+                # Pre jednoduchosť tu používame celý rect, ale vylepšenie by bolo kolidovať len so spodkom.
                 game_data["collidable_walls"].append(obj["rect"])
 
     setup_map("cmitermap")
@@ -455,44 +278,23 @@ def spustit_hru(screen):
     while running:
         selected_item = gui.get_selected_item()
         
-<<<<<<< HEAD
-=======
-        # Cooldown na zmenu mapy
-        # --- LOGIKA ZMENY MAPY (UKLADANIE A NAČÍTANIE) ---
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1
 
         if game_data["map_switch_cooldown"] == 0:
             for zone in game_data["change_map_squares"]:
                 if player.rect.colliderect(zone["rect"]):
-<<<<<<< HEAD
-=======
-                    # A. ULOŽÍME hroby STAREJ mapy do archívu
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
                     stara_mapa = game_data["current_map"]
                     game_data["persistent_graves"][stara_mapa] = game_data["graves"]
                     game_data["persistent_pits"][stara_mapa] = game_data["grave_pits"]
 
-<<<<<<< HEAD
-=======
-                    # B. ZMENÍME MAPU (klasický tvoj kód)
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
                     nova_mapa = zone["target"]
                     setup_map(nova_mapa)
                     player.rect.topleft = zone["spawn"]
 
-<<<<<<< HEAD
                     game_data["graves"] = game_data["persistent_graves"].get(nova_mapa, [])
                     game_data["grave_pits"] = game_data["persistent_pits"].get(nova_mapa, [])
 
-=======
-                    # C. NAČÍTAME hroby NOVEJ mapy z archívu
-                    game_data["graves"] = game_data["persistent_graves"].get(nova_mapa, [])
-                    game_data["grave_pits"] = game_data["persistent_pits"].get(nova_mapa, [])
-
-                    # D. OBNOVA KOLÍZIÍ (aby si cez staré hroby neprešiel)
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
                     for pit in game_data["grave_pits"]:
                         game_data["collidable_walls"].append(pit['rect'])
 
@@ -508,87 +310,31 @@ def spustit_hru(screen):
                     return
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
-                # ĽAVÉ TLAČIDLO (Digging)
-                if event.button == 1: 
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: 
                     if selected_item == "[2] Shovel":
                         if game_data["current_map"] == "cmitermap":
-<<<<<<< HEAD
-=======
-                            # 1. Spustíme minihru
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
                             minigame = GraveDigMinigame(screen)
-                            reward = minigame.run() # Tu sa vráti buď peniaze (výhra) alebo 0 (prehra)
+                            reward = minigame.run()
+                            
+                            if not hasattr(player, 'money'): player.money = 0
+                            player.money += reward
 
-                            # 2. Kontrola úspechu
-                            if reward > 0:
-                                # HRÁČ VYHRAL - Pripíšeme peniaze a vytvoríme hrob
-                                if not hasattr(player, 'money'): 
-                                    player.money = 0
-                                
-                                player.money += reward
-                                print(f"Úspech! Zarobil si: {reward}$")
-
-                                # Výpočet pozície hrobu
-                                gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
-                                gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
-                                
-                                # Pridanie do zoznamov
-                                new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
-                                new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
-                                
-                                game_data["graves"].append(new_grave) 
-                                game_data["grave_pits"].append(new_pit)
-                                game_data["collidable_walls"].append(new_pit['rect'])
-                            else:
-                                # HRÁČ PREHRAL (Timer vypršal alebo stlačil ESC)
-                                print("Nič si nevykopal. Skús to znova a rýchlejšie!")
-                                
+                            gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
+                            gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                            
+                            new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
+                            new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
+                            
+                            game_data["graves"].append(new_grave) 
+                            game_data["grave_pits"].append(new_pit)
+                            game_data["collidable_walls"].append(new_pit['rect'])
                         else:
-<<<<<<< HEAD
                             print("Pôda je tu príliš tvrdá na kopanie.")
 
-                # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
                 elif event.button == 3: 
-                    # 1. Otvoriť hroby
-                    for pit in game_data["grave_pits"]: 
-                        pit['state'] = 'opened' 
-                    
-                    # 2. Spawn nepriateľov (len ak sme na cintoríne)
-                    if game_data["current_map"] == "cmitermap":
-                         for _ in range(5):
-                            # Náhodná vzdialenosť od 300 do 600 pixelov (trochu ďalej)
-                            dist_x = random.randint(300, 600) * random.choice([-1, 1])
-                            dist_y = random.randint(300, 600) * random.choice([-1, 1])
-                            
-                            spawn_x = player.rect.x + dist_x
-                            spawn_y = player.rect.y + dist_y
-                            
-                            enemy_rect = pygame.Rect(spawn_x, spawn_y, 30, 30)
-                            game_data["enemies"].append(enemy_rect)
-=======
-                            print("Tu sa kopať nedá!")
-
-                
-                elif event.button == 3: 
-                    # (Tvoja pôvodná logika pre pravý klik)
                     for pit in game_data["grave_pits"]: pit['state'] = 'opened' 
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
 
             gui.handle_input(event)
-
-        # --- UPDATE NEPRIATEĽOV ---
-        for enemy in game_data["enemies"]:
-            # Rýchlosť znížená na 1 (pomalší)
-            speed = 1
-            if player.rect.x > enemy.x: enemy.x += speed
-            if player.rect.x < enemy.x: enemy.x -= speed
-            if player.rect.y > enemy.y: enemy.y += speed
-            if player.rect.y < enemy.y: enemy.y -= speed
-            
-            # Kontrola dotyku s hráčom
-            if player.rect.colliderect(enemy):
-                print("GAME OVER - Zomrel si!")
-                return # Vráti do menu (vypne hru)
 
         player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
         camera.update(player)
@@ -597,11 +343,7 @@ def spustit_hru(screen):
         # --- VYKRESĽOVANIE ---
         screen.fill((8, 50, 20))
 
-<<<<<<< HEAD
-        # 1. Vrstva: Podlaha a steny
-=======
-        # Map tiles
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
+        # 1. Vrstva: Podlaha a steny (Tilemap)
         for rect, tile_type in game_data["walls"]:
             maps_manager.drawTilemap(
                 screen, tile_type, rect, camera,
@@ -616,48 +358,42 @@ def spustit_hru(screen):
                 wheat_wall_img, wheat_wall_top_img
             )
 
-<<<<<<< HEAD
-        # 2. Vrstva: Jamy
-=======
-        # Zones (debug red squares)
-        # for zone in game_data["change_map_squares"]:
-        #    pygame.draw.rect(screen, (255, 0, 0), camera.apply(zone["rect"]))
-
-        # Vykreslenie jám
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
+        # 2. Vrstva: Jamy (Sú na zemi, vždy pod hráčom a objektmi)
         for pit in game_data["grave_pits"]:
             image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
             screen.blit(image_to_draw, camera.apply(pit['rect']))
 
-<<<<<<< HEAD
-        # 3. Vrstva: Y-SORTING (Hráč, Objekty, Hroby, Nepriatelia)
+        # 3. Vrstva: Y-SORTING (Hráč, Objekty, Hroby)
+        # Všetky entity, ktoré majú "výšku", dáme do jedného zoznamu a zoradíme podľa Y
         render_queue = []
 
-        render_queue.append({ "type": "player", "obj": player, "y": player.rect.bottom })
-=======
-        # Vykreslenie hrobov (náhrobkov)
-        for grave in game_data["graves"]:
-            grave.draw(screen, camera)
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
+        # Pridaj Hráča
+        render_queue.append({
+            "type": "player",
+            "obj": player,
+            "y": player.rect.bottom # Triedime podľa spodku nôh
+        })
 
-        # Objekty
+        # Pridaj Objekty (Domy, stromy...)
         for obj in game_data["map_objects"]:
-            render_queue.append({ "type": "object", "obj": obj, "y": obj["rect"].bottom })
+            render_queue.append({
+                "type": "object",
+                "obj": obj,
+                "y": obj["rect"].bottom # Triedime podľa spodku kolízneho boxu
+            })
 
-<<<<<<< HEAD
+        # Pridaj Hroby (Náhrobné kamene)
         for grave in game_data["graves"]:
-            render_queue.append({ "type": "grave", "obj": grave, "y": grave.rect.bottom })
-=======
-        # Hráč
-        try: player.draw(screen, camera)
-        except: pygame.draw.rect(screen, player.color, camera.apply(player.rect))
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
+            render_queue.append({
+                "type": "grave",
+                "obj": grave,
+                "y": grave.rect.bottom
+            })
 
-        for enemy in game_data["enemies"]:
-            render_queue.append({ "type": "enemy", "obj": enemy, "y": enemy.bottom })
-
+        # Zoradenie podľa Y súradnice (vzostupne - čo je vyššie na obrazovke, vykreslí sa skôr)
         render_queue.sort(key=lambda x: x["y"])
 
+        # Vykreslenie zoradených entít
         for item in render_queue:
             if item["type"] == "player":
                 try: item["obj"].draw(screen, camera)
@@ -668,46 +404,18 @@ def spustit_hru(screen):
             
             elif item["type"] == "object":
                 obj = item["obj"]
+                # Výpočet pozície: obrázok je vyšší ako rect, musí "trčať" hore
                 draw_pos = camera.apply(obj["rect"]).move(0, obj["rect"].height - obj["image"].get_height())
                 screen.blit(obj["image"], draw_pos)
-            
-            elif item["type"] == "enemy":
-                pygame.draw.rect(screen, (255, 0, 0), camera.apply(item["obj"]))
 
-        # 4. Vrstva: GUI a Fade
+        # 4. Vrstva: GUI a Fade (Vždy navrchu)
         gui.draw_inventory()
-        # gui.draw() # Ak máš metódu draw v GUI, použi ju
         fade.draw()
         
         pygame.display.flip()
         clock.tick(60)
 
-<<<<<<< HEAD
-=======
-
-# ==========================================
-# ČASŤ 3: HLAVNÝ START
-# ==========================================
-
->>>>>>> 22410eaa1a836f97f0c6615f6bf99a5296ddc467
 if __name__ == "__main__":
     pygame.init()
-    WIDTH, HEIGHT = 1280, 720
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Kto druhému jamu kope...")
-    
-    # 1. Spustíme Menu
-    menu = MainMenu(screen)
-    
-    while True:
-        # Čakáme na výber v menu
-        action = menu.run()
-        
-        if action == "play":
-            # 2. Ak vybral PLAY, spustíme hru
-            spustit_hru(screen)
-            # Keď hra skončí (ESC), cyklus pokračuje a znova zobrazí menu
-            
-        elif action == "quit":
-            pygame.quit()
-            sys.exit()
+    screen = pygame.display.set_mode((1280, 720))
+    spustit_hru(screen)
