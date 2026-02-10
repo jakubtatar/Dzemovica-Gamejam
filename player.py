@@ -10,6 +10,7 @@ class Player:
         self.rect = pygame.Rect(x, y, width, height)
         self.color = color
         self.speed = self.player_speed
+        self.money = 0
 
     # Handle key presses for movement with screen collision detection
     def handle_keys_with_collision(self, screen_width, screen_height, collidable_walls):
