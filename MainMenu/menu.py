@@ -11,6 +11,8 @@ sys.path.append(parent_dir)
 
 # Cesta k fontu
 FONT_PATH = os.path.join(parent_dir, "Resources", "Fonts", "upheavtt.ttf")
+# Cesta k logu (dynamicky vytvorená na základe tvojej požiadavky relatívne k projektu)
+LOGO_PATH = os.path.join(parent_dir, "Resources", "Logo_Big.png")
 
 try:
     import main 
@@ -242,6 +244,16 @@ def run_menu():
         font_menu = pygame.font.SysFont("Arial", 30)
         font_small = pygame.font.SysFont("Arial", 20)
 
+    # Načítanie LOGA
+    logo_surf = None
+    if os.path.exists(LOGO_PATH):
+        try:
+            logo_surf = pygame.image.load(LOGO_PATH).convert_alpha()
+        except Exception as e:
+            print(f"Chyba pri načítaní loga: {e}")
+    else:
+        print(f"Logo nenájdené na: {LOGO_PATH}")
+
     # Zvuky
     s_hover_path = os.path.join(parent_dir, "Resources", "Audio", "hover.wav")
     s_click_path = os.path.join(parent_dir, "Resources", "Audio", "click.wav")
@@ -273,7 +285,6 @@ def run_menu():
         time = pygame.time.get_ticks()
         
         # --- KRESLENIE POZADIA ---
-        # (Kreslíme stále to isté pozadie, aby to vyzeralo konzistentne)
         draw_gradient_sky(screen)
         for s in stars: s.update(time); s.draw(screen)
         draw_moon(screen)
@@ -302,13 +313,20 @@ def run_menu():
         # --- LOGIKA ROZHRANIA ---
         
         if view == "menu":
-            # Nadpis
+            # LOGO (Namiesto textu)
             offset_y = math.sin(time * 0.002) * 5
-            t_surf = font_title.render("KTO DRUHEMU JAMU KOPE...", True, ACCENT)
-            t_shadow = font_title.render("KTO DRUHEMU JAMU KOPE...", True, (0,0,0))
-            tr = t_surf.get_rect(center=(WIDTH//2, 150 + offset_y))
-            screen.blit(t_shadow, (tr.x+4, tr.y+4))
-            screen.blit(t_surf, tr)
+            
+            if logo_surf:
+                # Vykreslenie obrázku
+                lr = logo_surf.get_rect(center=(WIDTH//2, 150 + offset_y))
+                screen.blit(logo_surf, lr)
+            else:
+                # Fallback na text, ak sa obrázok nenačíta
+                t_surf = font_title.render("KTO DRUHEMU JAMU KOPE...", True, ACCENT)
+                t_shadow = font_title.render("KTO DRUHEMU JAMU KOPE...", True, (0,0,0))
+                tr = t_surf.get_rect(center=(WIDTH//2, 150 + offset_y))
+                screen.blit(t_shadow, (tr.x+4, tr.y+4))
+                screen.blit(t_surf, tr)
 
             for btn in btns:
                 act = btn.update(mx, my, click, s_hover)
