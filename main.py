@@ -541,8 +541,6 @@ def spustit_hru(screen):
         # 4. Vrstva: GUI a Fade (Vždy navrchu)
         gui.draw_inventory()
         fade.draw()
-
-        
         
         pygame.display.flip()
         clock.tick(60)
