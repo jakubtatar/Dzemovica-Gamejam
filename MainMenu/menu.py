@@ -352,10 +352,10 @@ def run_menu():
 
             # Zoznam tvorcov
             credits_data = [
-                ("CODE", "You"),
-                ("ART", "You"),
-                ("AUDIO", "You"),
-                ("SPECIAL THANKS", "You")
+                ("CODE BY", "Matúš Beke, Jakub Tatár, Ján Kristián Preisler"),
+                ("ART BY", "Jakub Tatár"),
+                ("AUDIO BY", "Ján Kristián Preisler"),
+                ("SPECIAL THANKS TO", "Vladimír Koššuth")
             ]
             
             y_pos = 230

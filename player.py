@@ -12,20 +12,47 @@ class Player:
         self.speed = self.player_speed
         self.money = 0
 
+         # --- NAČÍTANIE OBRÁZKOV ---
+        self.images = {
+            "down": pygame.image.load("Resources/Hugo/Hugo_Front1.png").convert_alpha(),
+            "up": pygame.image.load("Resources/Hugo/Hugo_Back1.png").convert_alpha(),
+            "left": pygame.image.load("Resources/Hugo/Hugo_Left1.png").convert_alpha(),
+            "right": pygame.image.load("Resources/Hugo/Hugo_Right1.png").convert_alpha()
+        }
+
+        # Zmenšíme obrázky na veľkosť hráča
+        for key in self.images:
+            self.images[key] = pygame.transform.scale(
+                self.images[key], (width, height)
+            )
+
+        self.direction = "down"
+        self.current_image = self.images[self.direction]
+
     # Handle key presses for movement with screen collision detection
     def handle_keys_with_collision(self, screen_width, screen_height, collidable_walls):
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
 
-        # --- pôvodný pohyb ---
-        if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and self.rect.x > 0:
+        keys = pygame.key.get_pressed()
+        dx, dy = 0, 0
+
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             dx -= self.speed
-        if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and self.rect.right < screen_width:
+            self.direction = "left"
+
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             dx += self.speed
-        if (keys[pygame.K_UP] or keys[pygame.K_w]) and self.rect.y > 0:
+            self.direction = "right"
+
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
             dy -= self.speed
-        if (keys[pygame.K_DOWN] or keys[pygame.K_s]) and self.rect.bottom < screen_height:
+            self.direction = "up"
+
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             dy += self.speed
+            self.direction = "down"
+
 
         # --- pohyb a kontrola kolízií ---
         self.rect.x += dx
@@ -44,7 +71,11 @@ class Player:
                 elif dy < 0:  # pohyb hore
                     self.rect.top = wall.bottom
 
+        self.current_image = self.images[self.direction]
+
+
 
     # Draw the player on the given surface
-    def draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.rect)
+    def draw(self, surface, camera):
+        surface.blit(self.current_image, camera.apply(self.rect))
+
