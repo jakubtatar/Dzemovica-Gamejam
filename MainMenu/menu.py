@@ -11,7 +11,7 @@ sys.path.append(parent_dir)
 
 # Cesta k fontu
 FONT_PATH = os.path.join(parent_dir, "Resources", "Fonts", "upheavtt.ttf")
-# Cesta k logu (dynamicky vytvorená na základe tvojej požiadavky relatívne k projektu)
+# Cesta k logu
 LOGO_PATH = os.path.join(parent_dir, "Resources", "Logo_Big.png")
 
 try:
@@ -23,9 +23,19 @@ except ImportError:
 pygame.init()
 pygame.mixer.init()
 
+# LOGICKÉ ROZLÍŠENIE (Hra si "myslí", že beží v tomto rozlíšení)
 WIDTH, HEIGHT = 1280, 720
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
+# SKUTOČNÉ ROZLÍŠENIE (Fullscreen)
+info = pygame.display.Info()
+# Nastavíme režim na celú obrazovku
+real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+REAL_W, REAL_H = real_screen.get_size()
+
 pygame.display.set_caption("Kto druhému jamu kope... - FINAL MENU")
+
+# Virtuálny povrch, na ktorý sa bude všetko kresliť
+canvas = pygame.Surface((WIDTH, HEIGHT))
 
 # --- 3. FARBY ---
 COL_SKY_TOP = (10, 10, 25)      # Temná nočná obloha
@@ -188,7 +198,8 @@ class Slider:
 
 # --- 5. POMOCNÉ FUNKCIE ---
 
-def draw_gradient_sky(screen):
+def draw_gradient_sky(surface):
+    # Vytvoríme gradient len raz a roztiahneme
     surf = pygame.Surface((1, HEIGHT))
     for y in range(HEIGHT):
         r = COL_SKY_TOP[0] + (COL_SKY_BOT[0] - COL_SKY_TOP[0]) * y / HEIGHT
@@ -196,22 +207,22 @@ def draw_gradient_sky(screen):
         b = COL_SKY_TOP[2] + (COL_SKY_BOT[2] - COL_SKY_TOP[2]) * y / HEIGHT
         surf.set_at((0, y), (int(r), int(g), int(b)))
     scaled = pygame.transform.scale(surf, (WIDTH, HEIGHT))
-    screen.blit(scaled, (0, 0))
+    surface.blit(scaled, (0, 0))
 
-def draw_moon(screen):
+def draw_moon(surface):
     glow = pygame.Surface((300, 300), pygame.SRCALPHA)
     pygame.draw.circle(glow, (200, 200, 255, 10), (150, 150), 140)
     pygame.draw.circle(glow, (200, 200, 255, 20), (150, 150), 100)
-    screen.blit(glow, (WIDTH - 250, 50))
-    pygame.draw.circle(screen, COL_MOON, (WIDTH - 100, 200), 50)
+    surface.blit(glow, (WIDTH - 250, 50))
+    pygame.draw.circle(surface, COL_MOON, (WIDTH - 100, 200), 50)
 
-def draw_hills(screen):
+def draw_hills(surface):
     points_far = [(0, HEIGHT), (0, HEIGHT-150), (WIDTH*0.3, HEIGHT-220), 
                   (WIDTH*0.6, HEIGHT-180), (WIDTH, HEIGHT-250), (WIDTH, HEIGHT)]
-    pygame.draw.polygon(screen, COL_HILL_FAR, points_far)
+    pygame.draw.polygon(surface, COL_HILL_FAR, points_far)
     points_mid = [(0, HEIGHT), (0, HEIGHT-80), (WIDTH*0.2, HEIGHT-120), 
                   (WIDTH*0.5, HEIGHT-90), (WIDTH*0.8, HEIGHT-140), (WIDTH, HEIGHT-60), (WIDTH, HEIGHT)]
-    pygame.draw.polygon(screen, COL_HILL_MID, points_mid)
+    pygame.draw.polygon(surface, COL_HILL_MID, points_mid)
 
 # --- 6. HLAVNÝ LOOP ---
 
@@ -284,21 +295,24 @@ def run_menu():
     while True:
         time = pygame.time.get_ticks()
         
-        # --- KRESLENIE POZADIA ---
-        draw_gradient_sky(screen)
-        for s in stars: s.update(time); s.draw(screen)
-        draw_moon(screen)
-        for b in bats: b.update(); b.draw(screen)
-        draw_hills(screen)
+        # --- PREPOČET SÚRADNÍC PRE RESPONSIVITU ---
+        # Zistíme pomer strán na roztiahnutie
+        scale_w = REAL_W / WIDTH
+        scale_h = REAL_H / HEIGHT
+        scale = min(scale_w, scale_h) # Zachová pomer strán (letterbox)
         
-        tree_right.draw(screen)
-        tree_left.draw(screen)
-        for g in graves: g.draw(screen)
-        
-        pygame.draw.rect(screen, COL_GROUND, (0, HEIGHT-30, WIDTH, 30))
+        # Centrovanie obrazu na monitore
+        new_w = int(WIDTH * scale)
+        new_h = int(HEIGHT * scale)
+        offset_x = (REAL_W - new_w) // 2
+        offset_y = (REAL_H - new_h) // 2
 
-        # --- UPDATE VSTUPOV ---
-        mx, my = pygame.mouse.get_pos()
+        # --- UPDATE VSTUPOV (S prepočtom myši) ---
+        raw_mx, raw_my = pygame.mouse.get_pos()
+        # Prepočet skutočnej myši na "herné" súradnice
+        mx = (raw_mx - offset_x) / scale
+        my = (raw_my - offset_y) / scale
+        
         m_down = pygame.mouse.get_pressed()[0]
         click = False
         
@@ -309,66 +323,77 @@ def run_menu():
                 if view != "menu": 
                     if s_click: s_click.play()
                     view = "menu"
+                else:
+                    # ESC v hlavnom menu vypne hru (alebo len fullscreen)
+                    pygame.quit(); sys.exit()
+
+        # --- KRESLENIE NA VIRTUÁLNY CANVS ---
+        draw_gradient_sky(canvas)
+        for s in stars: s.update(time); s.draw(canvas)
+        draw_moon(canvas)
+        for b in bats: b.update(); b.draw(canvas)
+        draw_hills(canvas)
+        
+        tree_right.draw(canvas)
+        tree_left.draw(canvas)
+        for g in graves: g.draw(canvas)
+        
+        pygame.draw.rect(canvas, COL_GROUND, (0, HEIGHT-30, WIDTH, 30))
 
         # --- LOGIKA ROZHRANIA ---
         
         if view == "menu":
-            # LOGO (Namiesto textu)
             offset_y = math.sin(time * 0.002) * 5
             
             if logo_surf:
-                # Vykreslenie obrázku
                 lr = logo_surf.get_rect(center=(WIDTH//2, 150 + offset_y))
-                screen.blit(logo_surf, lr)
+                canvas.blit(logo_surf, lr)
             else:
-                # Fallback na text, ak sa obrázok nenačíta
                 t_surf = font_title.render("KTO DRUHEMU JAMU KOPE...", True, ACCENT)
                 t_shadow = font_title.render("KTO DRUHEMU JAMU KOPE...", True, (0,0,0))
                 tr = t_surf.get_rect(center=(WIDTH//2, 150 + offset_y))
-                screen.blit(t_shadow, (tr.x+4, tr.y+4))
-                screen.blit(t_surf, tr)
+                canvas.blit(t_shadow, (tr.x+4, tr.y+4))
+                canvas.blit(t_surf, tr)
 
             for btn in btns:
                 act = btn.update(mx, my, click, s_hover)
-                btn.draw(screen)
+                btn.draw(canvas)
                 if act:
                     if s_click: s_click.play()
                     if act == "play": 
-                        if "main" in sys.modules: main.spustit_hru(screen)
+                        if "main" in sys.modules: 
+                            # Tu by sa malo ideálne predať real_screen, 
+                            # ale záleží na tom, ako je napísané main.py
+                            main.spustit_hru(real_screen) 
                     elif act == "settings": view = "settings"
                     elif act == "credits": view = "credits"
                     elif act == "quit": pygame.quit(); sys.exit()
 
         elif view == "settings":
-            # Nadpis Settings
             head = font_title.render("SETTINGS", True, ACCENT)
             head_s = font_title.render("SETTINGS", True, (0,0,0))
             hr = head.get_rect(center=(WIDTH//2, 120))
-            screen.blit(head_s, (hr.x+4, hr.y+4)); screen.blit(head, hr)
+            canvas.blit(head_s, (hr.x+4, hr.y+4)); canvas.blit(head, hr)
 
-            # Slider Volume
             vol = slider.update(mx, my, m_down)
             if s_hover: s_hover.set_volume(vol)
             if s_click: s_click.set_volume(vol)
             
-            slider.draw(screen)
+            slider.draw(canvas)
             txt = font_menu.render(f"Volume: {int(vol*100)}%", True, TEXT_COL)
-            screen.blit(txt, txt.get_rect(center=(WIDTH//2, 280)))
+            canvas.blit(txt, txt.get_rect(center=(WIDTH//2, 280)))
 
-            # Tlačidlo späť
             if btn_back.update(mx, my, click, s_hover) == "back":
                 if s_click: s_click.play()
                 view = "menu"
-            btn_back.draw(screen)
+            btn_back.draw(canvas)
 
         elif view == "credits":
-            # Nadpis Credits
             head = font_title.render("CREDITS", True, ACCENT)
             head_s = font_title.render("CREDITS", True, (0,0,0))
             hr = head.get_rect(center=(WIDTH//2, 120))
-            screen.blit(head_s, (hr.x+4, hr.y+4)); screen.blit(head, hr)
+            canvas.blit(head_s, (hr.x+4, hr.y+4)); canvas.blit(head, hr)
 
-            # Zoznam tvorcov
             credits_data = [
                 ("CODE BY", "Matúš Beke, Jakub Tatár, Ján Kristián Preisler"),
                 ("ART BY", "Jakub Tatár"),
@@ -378,19 +403,26 @@ def run_menu():
             
             y_pos = 230
             for role, name in credits_data:
-                lbl = font_small.render(role, True, (150, 150, 150)) # Sivá pre rolu
-                val = font_menu.render(name, True, (255, 255, 255)) # Biela pre meno
+                lbl = font_small.render(role, True, (150, 150, 150))
+                val = font_menu.render(name, True, (255, 255, 255))
                 
-                screen.blit(lbl, lbl.get_rect(center=(WIDTH//2, y_pos)))
-                screen.blit(val, val.get_rect(center=(WIDTH//2, y_pos + 30)))
+                canvas.blit(lbl, lbl.get_rect(center=(WIDTH//2, y_pos)))
+                canvas.blit(val, val.get_rect(center=(WIDTH//2, y_pos + 30)))
                 y_pos += 80
 
-            # Tlačidlo späť
             if btn_back.update(mx, my, click, s_hover) == "back":
                 if s_click: s_click.play()
                 view = "menu"
-            btn_back.draw(screen)
+            btn_back.draw(canvas)
 
+        # --- FINÁLNE VYKRESLENIE NA OBRAZOVKU ---
+        # Vyčistíme skutočnú obrazovku (čierne pruhy na okrajoch)
+        real_screen.fill((0, 0, 0))
+        # Roztiahneme canvas na novú veľkosť
+        scaled_surf = pygame.transform.smoothscale(canvas, (new_w, new_h))
+        # Vložíme vycentrované
+        real_screen.blit(scaled_surf, (offset_x, offset_y))
+        
         pygame.display.flip()
         clock.tick(60)
 
