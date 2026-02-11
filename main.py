@@ -79,7 +79,7 @@ def spustit_hru(screen):
     fade = Fade(screen, speed=8)
     
     # Hráč a GUI
-    player = Player(x=100, y=100, width=50, height=50, color=(0, 128, 255))
+    player = Player(x=100, y=100, width=50, height=100, color=(0, 128, 255))
     camera = Camera(screen_width, screen_height)
     gui = GUI(screen, player)
 
