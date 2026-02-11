@@ -485,7 +485,7 @@ if game_paused:
         elif result is not None:
             # Ak result je napr. "settings", pause_view sa prepne a menu sa zmení
             pause_view = result
-pygame.display.flip()
+ pygame.display.flip()
 clock.tick(60)
 
 
@@ -849,15 +849,15 @@ TILE_SIZE = 50
 # ČASŤ 3: HLAVNÝ START
 # ==========================================
 if __name__ == "__main__":
-    pygame.init()
-    WIDTH, HEIGHT = 1280, 720
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Kto druhému jamu kope...")
+ pygame.init()
+ WIDTH, HEIGHT = 1280, 720
+ screen = pygame.display.set_mode((WIDTH, HEIGHT))
+ pygame.display.set_caption("Kto druhému jamu kope...")
     
     # 1. Spustíme Menu
-    menu = MainMenu(screen)
+menu = MainMenu(screen)
     
-    while True:
+while True:
         # Čakáme na výber v menu
         action = menu.run()
         
