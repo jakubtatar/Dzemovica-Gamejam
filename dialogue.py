@@ -1,17 +1,28 @@
 import pygame
 
 class Dialogue:
-    def __init__(self, text, typeSpeed, typeSound=None):
-        self.font = pygame.font.Font(r".\Resources\Fonts\upheavtt.ttf", 24)
-        self.text = text 
+    def __init__(self, font, text, typeSpeed=30):
+        self.font = font
+        self.text = text
         self.typeSpeed = typeSpeed
-        self.typeSound = typeSound
-    
-    def typeText(self, screen, x, y):
-        displayed_text = ""
-        for i in range(len(self.text)):
-            displayed_text += self.text[i]
-            text_surf = self.font.render(displayed_text, True, (255, 255, 255))
-            screen.blit(text_surf, (x, y))
-            pygame.display.flip()
-            pygame.time.delay(self.typeSpeed)
+        self.current_index = 0
+        self.displayed_text = ""
+        self.done = False
+
+    def update(self, dt):
+        if not self.done:
+            self.current_index += dt // self.typeSpeed
+            if self.current_index >= len(self.text):
+                self.current_index = len(self.text)
+                self.done = True
+            self.displayed_text = self.text[:int(self.current_index)]
+
+    def draw(self, screen, x, y, color=(255,255,255)):
+        text_surf = self.font.render(self.displayed_text, True, color)
+        screen.blit(text_surf, (x, y))
+
+    def reset(self, new_text):
+        self.text = new_text
+        self.current_index = 0
+        self.displayed_text = ""
+        self.done = False

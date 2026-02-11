@@ -12,6 +12,8 @@ from grave import Grave
 from dialogue import Dialogue
 from mapsmanager import MapsManager
 from item import Item
+from npc import NPC
+
 
 try:
     from graveDigMinigame import GraveDigMinigame
@@ -158,6 +160,15 @@ def spustit_hru(screen):
 
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
+    player_dialog_img = pygame.image.load("Resources/Hugo/Hugo_Front1.png").convert_alpha()
+    player_dialog_img = pygame.transform.scale(player_dialog_img, (200, 350))
+
+    priest__img = pygame.image.load("Resources/NPCs/Priest_Front1.png").convert_alpha()
+    priest__img = pygame.transform.scale(priest__img, (50, 100))
+    priest_dialog_img = pygame.image.load("Resources/NPCs/Priest_Front1.png").convert_alpha()
+    priest_dialog_img = pygame.transform.scale(priest_dialog_img, (200, 350))
+
+
     # --- SETUP MAPY ---
     game_data = {
         "walls": [],
@@ -266,6 +277,33 @@ def spustit_hru(screen):
                 "collidable": True
             })
 
+            priest_x, priest_y = 800, 400  # tu nastav svoju pozíciu
+            priest_width, priest_height = 60, 100
+
+            priest_npc = NPC(
+                priest_x, priest_y,
+                priest_width, priest_height,
+                "Resources/NPCs/Priest_Front1.png",
+                [
+                    "My son...",
+                    "Darkness is spreading across the land.",
+                    "You need to protect the village.",
+                    "God be with you."
+                ]
+            )
+
+            # uloženie do game_data
+            game_data["npc"] = priest_npc
+
+            # pridanie do map_objects, aby sa vykresľoval
+            game_data["map_objects"].append({
+                "rect": priest_npc.rect,
+                "image": priest__img,
+                "collidable": False,  # môžeš nastaviť True, ak chceš, aby hráč nemohol prejsť cez kňaza
+                "npc_ref": priest_npc  # optional, aby si mal odkaz na NPC
+            })
+
+
         # Objekty do kolízií (len kolidovateľné)
         for obj in game_data["map_objects"]:
             if obj["collidable"]:
@@ -273,6 +311,12 @@ def spustit_hru(screen):
 
     setup_map("cmitermap")
     fade.fade_in()
+
+    # Dialogy
+    dialogue_active = False
+    dialogue_index = 0
+    font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 32)
+
 
     # --- HERNÁ SLUČKA ---
     running = True
@@ -309,8 +353,22 @@ def spustit_hru(screen):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return
+                if event.key == pygame.K_e:
+                    if game_data["current_map"] == "village":
+                        npc = game_data.get("npc")
+                        if npc and player.rect.colliderect(npc.rect.inflate(40,40)):
+                            dialogue_active = True
+                            dialogue_index = 0
+
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
+                if dialogue_active and event.button == 1:
+                    dialogue_index += 1
+                    npc = game_data.get("npc")
+                    if dialogue_index >= len(npc.dialogue_lines):
+                        dialogue_active = False
+                    continue
+
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: 
                     if selected_item == "[2] Shovel":
                         if game_data["current_map"] == "cmitermap":
@@ -367,7 +425,9 @@ def spustit_hru(screen):
                 print("GAME OVER - Zomrel si!")
                 return # Vráti do menu (vypne hru)
 
-        player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
+        if not dialogue_active:
+            player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
+
         camera.update(player)
         fade.update()
 
@@ -450,9 +510,39 @@ def spustit_hru(screen):
             elif item["type"] == "enemy":
                 pygame.draw.rect(screen, (255, 0, 0), camera.apply(item["obj"]))
 
+        # --- "Press E" INTERACT TEXT nad NPC (po vykreslení NPC) ---
+        npc = game_data.get("npc")
+        if npc and player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
+            interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
+            interact_text = interact_font.render("Press E", True, (255, 255, 0))
+            # vypočíta pozíciu nad hlavou NPC
+            text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
+            screen.blit(interact_text, camera.apply(text_rect))
+
+        # Dialogy (ak sú aktívne, vykreslíme ich navrchu všetkého)
+        if dialogue_active:
+        
+            # Obrázok hráča (ľavá strana)
+            screen.blit(player_dialog_img, (50, screen_height - 450))
+
+            # Obrázok kňaza (pravá strana)
+            screen.blit(priest_dialog_img, (screen_width - 250, screen_height - 450))
+
+            dialogue_box = pygame.Rect(0, screen_height - 200, screen_width, 200)
+            pygame.draw.rect(screen, (0,0,0), dialogue_box)
+
+            npc = game_data.get("npc")
+
+            # Text
+            text = npc.dialogue_lines[dialogue_index]
+            rendered_text = font.render(text, True, (255,255,255))
+            screen.blit(rendered_text, (50, screen_height - 120))
+
         # 4. Vrstva: GUI a Fade (Vždy navrchu)
         gui.draw_inventory()
         fade.draw()
+
+        
         
         pygame.display.flip()
         clock.tick(60)
