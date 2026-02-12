@@ -304,22 +304,29 @@ def spustit_hru(screen):
                 "collidable": False
             })
             game_data["map_objects"].append({
-                "rect": pygame.Rect(600, -400, TILE_SIZE * 14, TILE_SIZE * 14),
+                "rect": pygame.Rect(900, -400, TILE_SIZE * 14, TILE_SIZE * 14),
                 "image": object_church_img,
                 "collidable": True
             })
             game_data["map_objects"].append({
-                "rect": pygame.Rect(1400, 0, TILE_SIZE * 7, TILE_SIZE * 7),
+                "rect": pygame.Rect(1600, 550, TILE_SIZE * 7, TILE_SIZE * 7),
                 "image": object_shop_img,
                 "collidable": True
             })
             game_data["map_objects"].append({
-                "rect": pygame.Rect(1900, 0, TILE_SIZE * 7, TILE_SIZE * 7),
+                "rect": pygame.Rect(1650, 100, TILE_SIZE * 7, TILE_SIZE * 7),
                 "image": object_taverna_img,
                 "collidable": True
             })
+            tree_positions = [(350, 250),(650, 200), (850, 500), (1250, 400), (1300, 800), (700, -150), (1550, -150), (1850, 200)]
+            for pos in tree_positions:
+                game_data["map_objects"].append({
+                    "rect": pygame.Rect(pos[0], pos[1], TILE_SIZE * 7, TILE_SIZE * 7),
+                    "image": object_tree_img,
+                    "collidable": False
+                })
 
-            priest_x, priest_y = 800, 400
+            priest_x, priest_y = 1400, 230
             priest_width, priest_height = 60, 100
 
             priest_npc = NPC(
