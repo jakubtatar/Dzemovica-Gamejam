@@ -190,7 +190,10 @@ def spustit_hru(screen):
         "enemies": [], # Zoznam pre duchov (ukladáme slovníky: {"rect": Rect, "image": Surface})
         "persistent_graves": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "persistent_pits": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
-        "map_switch_cooldown": 0
+        "map_switch_cooldown": 0,
+        "night_mode": False,
+        "night_timer": 0,
+        "night_text_timer": 0,
     }
 
     def setup_map(map_name):
@@ -453,19 +456,18 @@ def spustit_hru(screen):
 
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
                 elif event.button == 3 and not game_over: 
+                   if not game_data["night_mode"]:
+                    game_data["night_mode"] = True
+                    game_data["night_timer"] = 60 * 60  # 60 sekúnd pri 60 FPS
+                    game_data["night_text_timer"] = 180
                     for pit in game_data["grave_pits"]: 
                         pit['state'] = 'opened' 
                     
                     if game_data["current_map"] == "cmitermap":
-                         for _ in range(5):
+                        for _ in range(5):
                             dist_x = random.randint(300, 600) * random.choice([-1, 1])
                             dist_y = random.randint(300, 600) * random.choice([-1, 1])
-                            
-                            spawn_x = player.rect.x + dist_x
-                            spawn_y = player.rect.y + dist_y
-                            
-                            # Tu používame obrázok ducha
-                            new_enemy_rect = ghost_img.get_rect(topleft=(spawn_x, spawn_y))
+                            new_enemy_rect = ghost_img.get_rect(topleft=(player.rect.x + dist_x, player.rect.y + dist_y))
                             game_data["enemies"].append({
                                 "rect": new_enemy_rect,
                                 "image": ghost_img,
@@ -637,6 +639,40 @@ def spustit_hru(screen):
                             if dist != 0:
                                 enemy["knockback_x"] = (dx / dist) * 20
                                 enemy["knockback_y"] = (dy / dist) * 20
+        
+        # NIGHT MODE
+        if game_data["night_mode"]:
+            # 1. Overlay a svetelný kruh sledujúci hráča
+            overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 230))
+            
+            # Výpočet pozície hráča na obrazovke
+            player_screen_pos = camera.apply(player.rect).center
+            pygame.draw.circle(overlay, (0, 0, 0, 0), player_screen_pos, 180)
+            screen.blit(overlay, (0, 0))
+
+            # 2. Odpočítavanie noci
+            game_data["night_timer"] -= 1
+            
+            # Zobrazenie textu "NASTALA NOC"
+            if game_data["night_text_timer"] > 0:
+                night_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 70)
+                night_text = night_font.render("THE NIGHT HAS COME", True, (255, 255, 255))
+                screen.blit(night_text, night_text.get_rect(center=(screen_width // 2, 100)))
+                game_data["night_text_timer"] -= 1
+
+            # Zobrazenie zostávajúceho času noci
+            timer_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 40)
+            seconds_left = max(0, game_data["night_timer"] // 60)
+            timer_text = timer_font.render(f"The night will end in: {seconds_left}s", True, (255, 255, 255))
+            screen.blit(timer_text, (screen_width // 2 - 120, 20))
+
+            # 3. Koniec noci - upratovanie
+            if game_data["night_timer"] <= 0:
+                game_data["night_mode"] = False
+                game_data["enemies"].clear()  # Zabije všetkých duchov
+                for pit in game_data["grave_pits"]: 
+                    pit['state'] = 'closed'  # Zatvorí jamy
 
         gui.draw()
         fade.draw()
