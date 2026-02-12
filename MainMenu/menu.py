@@ -38,7 +38,7 @@ def set_display_mode(fullscreen):
 
 # Inicializácia obrazovky (defaultne Fullscreen)
 real_screen = set_display_mode(is_fullscreen)
-pygame.display.set_caption("Kto druhému jamu kope... - FINAL MENU")
+pygame.display.set_caption("Kto druhému jamu kope...")
 
 # Virtuálny povrch (Canvas), na ktorý kreslíme hru
 canvas = pygame.Surface((WIDTH, HEIGHT))
