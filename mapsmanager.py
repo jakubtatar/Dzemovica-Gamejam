@@ -78,11 +78,14 @@ class MapsManager:
                     elif char == "m":
                         tiles.append((rect, "m")) # wheat wall top
                         collidable_tiles.append(rect)
+                    elif char == "v":
+                        tiles.append((rect, "v")) # voda
+                        collidable_tiles.append(rect)
 
                         
         return tiles, collidable_tiles
 
-    def drawTilemap(self, screen, tile_type, rect, camera, tile1_img, tile2_img, hedgefront_img, hedgetopfront_img, hedgeRD_img, hedgeLD_img, hedgetopwall_img, hedgeLT_img, hedgeRT_img, floor_planks_img, wall_img, wall_front_img, wall_top_img, wall_left_img, wall_right_img, wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img, wheat_wall_img, wheat_wall_top_img):
+    def drawTilemap(self, screen, tile_type, rect, camera, tile1_img, tile2_img, hedgefront_img, hedgetopfront_img, hedgeRD_img, hedgeLD_img, hedgetopwall_img, hedgeLT_img, hedgeRT_img, floor_planks_img, wall_img, wall_front_img, wall_top_img, wall_left_img, wall_right_img, wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img, wheat_wall_img, wheat_wall_top_img, water_gif):
         if tile_type == "1":
             screen.blit(tile1_img, camera.apply(rect))
         elif tile_type == "0":
@@ -125,3 +128,5 @@ class MapsManager:
             screen.blit(wheat_wall_img, camera.apply(rect))
         elif tile_type == "m":
             screen.blit(wheat_wall_top_img, camera.apply(rect))
+        elif tile_type == "v":
+            screen.blit(water_gif, camera.apply(rect))

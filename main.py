@@ -118,6 +118,9 @@ def spustit_hru(screen):
         grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
         grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
 
+        #Voda
+        water_gif = pygame.image.load(r"Resources/Water.gif").convert_alpha()
+
         # Objekty
         object_well_img = pygame.image.load(r"Resources/Objects/Object_Well.png").convert_alpha()
         object_house_img = pygame.image.load(r"Resources/Objects/Object_House_01.png").convert_alpha()
@@ -156,6 +159,8 @@ def spustit_hru(screen):
     wall_LD_img = pygame.transform.scale(wall_LD_img, (TILE_SIZE, TILE_SIZE))
     wheat_wall_img = pygame.transform.scale(wheat_wall_img, (TILE_SIZE, TILE_SIZE))
     wheat_wall_top_img = pygame.transform.scale(wheat_wall_top_img, (TILE_SIZE, TILE_SIZE))
+
+    water_gif = pygame.transform.scale(water_gif, (TILE_SIZE, TILE_SIZE))
     
     grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
     grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
@@ -194,6 +199,7 @@ def spustit_hru(screen):
         "night_mode": False,
         "night_timer": 0,
         "night_text_timer": 0,
+        "visible_mapchangers": True, #Developerske nastavenie
     }
 
     def setup_map(map_name):
@@ -260,6 +266,13 @@ def spustit_hru(screen):
                 "target": "crossroad",
                 "spawn": (500, 100)
             })
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(250, 430, TILE_SIZE, TILE_SIZE),
+                "target": "house",
+                "spawn": (150, 450)
+            })
+
             game_data["map_objects"].append({
                 "rect": pygame.Rect(200, 100, TILE_SIZE * 7, TILE_SIZE * 7),
                 "image": object_house_img,
@@ -317,6 +330,18 @@ def spustit_hru(screen):
                 "npc_ref": priest_npc
             })
 
+        elif map_name == "house":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/house.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(150, 550, TILE_SIZE, TILE_SIZE),
+                "target": "houseplace",
+                "spawn": (250, 500)
+            })
+
 
         # Objekty do kolízií (len kolidovateľné)
         for obj in game_data["map_objects"]:
@@ -355,6 +380,7 @@ def spustit_hru(screen):
         if game_data["map_switch_cooldown"] == 0:
             for zone in game_data["change_map_squares"]:
                 if player.rect.colliderect(zone["rect"]) and not game_data["night_mode"]:
+                    fade.fade_in()
                     stara_mapa = game_data["current_map"]
                     game_data["persistent_graves"][stara_mapa] = game_data["graves"]
                     game_data["persistent_pits"][stara_mapa] = game_data["grave_pits"]
@@ -524,8 +550,14 @@ def spustit_hru(screen):
                 wall_img, wall_front_img, wall_top_img,
                 wall_left_img, wall_right_img,
                 wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img,
-                wheat_wall_img, wheat_wall_top_img
+                wheat_wall_img, wheat_wall_top_img, water_gif
             )
+
+        if game_data["visible_mapchangers"]:
+            for zone in game_data["change_map_squares"]:
+                debug_surf = pygame.Surface((zone["rect"].width, zone["rect"].height), pygame.SRCALPHA)
+                debug_surf.fill((255, 255, 0, 120)) # Žltá je lepšie vidieť na tráve
+                screen.blit(debug_surf, camera.apply(zone["rect"]))
 
         for pit in game_data["grave_pits"]:
             image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
