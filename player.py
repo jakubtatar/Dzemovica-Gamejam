@@ -28,6 +28,10 @@ class Player:
         self.color = color
         self.money = 0
 
+        self.health = 100
+        self.last_damage_time = 0
+
+
         # --- NAČÍTANIE OBRÁZKOV ---
         try:
             self.images = {

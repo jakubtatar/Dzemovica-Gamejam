@@ -57,6 +57,10 @@ except ImportError:
 # ==========================================
 # HLAVNÁ FUNKCIA HRY
 # ==========================================
+def rotate_surface(surface, angle, pivot, offset):
+    rotated_image = pygame.transform.rotate(surface, angle)
+    rotated_rect = rotated_image.get_rect(center=pivot + offset)
+    return rotated_image, rotated_rect
 
 def spustit_hru(screen):
     screen_width, screen_height = screen.get_size()
@@ -123,7 +127,7 @@ def spustit_hru(screen):
         object_taverna_img = pygame.image.load(r"Resources/Objects/Object_Taverna.png").convert_alpha()
 
         # --- NOVÝ OBRÁZOK DUCHA ---
-        ghost_img = pygame.image.load(r"C:\Users\bekem24\AppData\Local\GitHubDesktop\app-3.5.4\Dzemovica-Gamejam\Resources\NPCs\Ghost_Front1.png").convert_alpha()
+        ghost_img = pygame.image.load(r"Resources/NPCs/Ghost_Front1.png").convert_alpha()
         ghost_img = pygame.transform.scale(ghost_img, (50, 70)) # Zmena mierky (šírka 50, výška 70)
 
     except Exception as e:
@@ -324,9 +328,21 @@ def spustit_hru(screen):
     dialogue_index = 0
     font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 32)
 
+    attack_active = False
+    attack_start_time = 0
+    attack_duration = 150  # čas swingu v ms
+    sword_length = 70
+    sword_width = 10
+    sword_surf = pygame.Surface((sword_length, sword_width), pygame.SRCALPHA)
+    pygame.draw.rect(sword_surf, (100, 50, 0), (0, 0, 10, sword_width)) 
+    pygame.draw.rect(sword_surf, (200, 200, 200), (10, 0, sword_length - 10, sword_width)) 
+    enemies_hit_this_swing = []
+
 
     # --- HERNÁ SLUČKA ---
     running = True
+    game_over = False
+
     while running:
         selected_item = gui.get_selected_item()
         
@@ -376,7 +392,45 @@ def spustit_hru(screen):
                         dialogue_active = False
                     continue
 
-                if event.button == 1: 
+                if event.button == 1 and not game_over: 
+                    if selected_item == "[1] Sword":  # uprav podľa názvu v GUI
+                        attack_active = True
+                        attack_start_time = pygame.time.get_ticks()
+
+                        attack_size = 100
+
+                        if player.direction == "right":
+                            attack_rect = pygame.Rect(player.rect.right, player.rect.centery-20, attack_size, 40)
+                        elif player.direction == "left":
+                            attack_rect = pygame.Rect(player.rect.left-attack_size, player.rect.centery-20, attack_size, 40)
+                        elif player.direction == "up":
+                            attack_rect = pygame.Rect(player.rect.centerx-20, player.rect.top-attack_size, 40, attack_size)
+                        elif player.direction == "down":
+                            attack_rect = pygame.Rect(player.rect.centerx-20, player.rect.bottom, 40, attack_size)
+
+                        # DAMAGE CHECK
+                        for enemy in game_data["enemies"]:
+                            enemy["rect"].x += enemy["knockback_x"]
+                            enemy["rect"].y += enemy["knockback_y"]
+
+                            enemy["knockback_x"] *= 0.85
+                            enemy["knockback_y"] *= 0.85
+                            if attack_rect.colliderect(enemy["rect"]):
+
+                                enemy["health"] -= 15
+
+                                # --- KNOCKBACK ---
+                                dx = enemy["rect"].centerx - player.rect.centerx
+                                dy = enemy["rect"].centery - player.rect.centery
+                                length = math.hypot(dx, dy)
+
+                                if length != 0:
+                                    dx /= length
+                                    dy /= length
+
+                                knockback_strength = 15
+                                enemy["knockback_x"] = dx * knockback_strength
+                                enemy["knockback_y"] = dy * knockback_strength
                     if selected_item == "[2] Shovel":
                         if game_data["current_map"] == "cmitermap":
                             minigame = GraveDigMinigame(screen)
@@ -398,7 +452,7 @@ def spustit_hru(screen):
                             print("Pôda je tu príliš tvrdá na kopanie.")
 
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
-                elif event.button == 3: 
+                elif event.button == 3 and not game_over: 
                     for pit in game_data["grave_pits"]: 
                         pit['state'] = 'opened' 
                     
@@ -412,7 +466,15 @@ def spustit_hru(screen):
                             
                             # Tu používame obrázok ducha
                             new_enemy_rect = ghost_img.get_rect(topleft=(spawn_x, spawn_y))
-                            game_data["enemies"].append({"rect": new_enemy_rect, "image": ghost_img})
+                            game_data["enemies"].append({
+                                "rect": new_enemy_rect,
+                                "image": ghost_img,
+                                "health": 30,
+                                "max_health": 30,
+                                "knockback_x": 0,
+                                "knockback_y": 0
+                            })
+
 
             gui.handle_input(event)
 
@@ -426,10 +488,21 @@ def spustit_hru(screen):
             if player.rect.y < e_rect.y: e_rect.y -= speed
             
             if player.rect.colliderect(e_rect):
-                print("GAME OVER - Zomrel si!")
-                return 
+                current_time = pygame.time.get_ticks()
 
-        if not dialogue_active:
+                # damage iba raz za 1 sekundu
+                if current_time - player.last_damage_time >= 1000 and not game_over:
+                    player.health -= 10
+                    player.last_damage_time = current_time
+                    print("HP:", player.health)
+
+                    if player.health <= 0:
+                        game_over = True
+        game_data["enemies"] = [e for e in game_data["enemies"] if e["health"] > 0]
+
+
+
+        if not dialogue_active and not game_over:
             player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
 
         camera.update(player)
@@ -484,6 +557,19 @@ def spustit_hru(screen):
             elif item["type"] == "enemy":
                 # VYKRESLENIE OBRÁZKA DUCHA
                 screen.blit(item["obj"]["image"], camera.apply(item["obj"]["rect"]))
+                enemy = item["obj"]
+                rect_on_screen = camera.apply(enemy["rect"])
+
+                bar_width = 40
+                bar_height = 6
+                health_ratio = enemy["health"] / enemy["max_health"]
+
+                bar_x = rect_on_screen.centerx - bar_width // 2
+                bar_y = rect_on_screen.y - 10
+
+                pygame.draw.rect(screen, (150,0,0), (bar_x, bar_y, bar_width, bar_height))
+                pygame.draw.rect(screen, (0,200,0), (bar_x, bar_y, bar_width * health_ratio, bar_height))
+
 
         # --- NPC INTERACT TEXT ---
         npc = game_data.get("npc")
@@ -503,7 +589,56 @@ def spustit_hru(screen):
             rendered_text = font.render(text, True, (255,255,255))
             screen.blit(rendered_text, (50, screen_height - 120))
 
-        gui.draw_inventory()
+        if game_over:
+            # Šedý overlay
+            grey_overlay = pygame.Surface((screen_width, screen_height))
+            grey_overlay.set_alpha(180)  # priehľadnosť (0-255)
+            grey_overlay.fill((0, 0, 0))  # šedá farba
+            screen.blit(grey_overlay, (0, 0))
+
+            # Text YOU DIED
+            death_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 100)
+            death_text = death_font.render("YOU DIED", True, (200, 0, 0))
+            text_rect = death_text.get_rect(center=(screen_width//2, screen_height//2))
+            screen.blit(death_text, text_rect)
+        
+        # attack vizuál
+        if attack_active:
+            elapsed = pygame.time.get_ticks() - attack_start_time
+            progress = elapsed / attack_duration 
+
+            if progress >= 1:
+                attack_active = False
+            else:
+                direction_angles = {"right": 0, "left": 180, "up": 270, "down": 90}
+                base_angle = direction_angles.get(player.direction, 0)
+
+                swing_range = 120 
+                current_swing_angle = base_angle - (progress * swing_range - 60)
+
+                rotated_image = pygame.transform.rotate(sword_surf, -current_swing_angle)
+                
+                pivot_offset_vec = pygame.math.Vector2(sword_length / 2, 0)
+                rotated_pivot_offset = pivot_offset_vec.rotate(current_swing_angle)
+                
+                new_rect_center = pygame.math.Vector2(player.rect.center) + rotated_pivot_offset
+                sword_rect = rotated_image.get_rect(center=new_rect_center)
+
+                screen.blit(rotated_image, camera.apply(sword_rect))
+
+                for enemy in game_data["enemies"]:
+                    if sword_rect.colliderect(enemy["rect"]):
+                        if enemy not in enemies_hit_this_swing:
+                            enemy["health"] -= 15
+                            enemies_hit_this_swing.append(enemy)
+                            dx = enemy["rect"].centerx - player.rect.centerx
+                            dy = enemy["rect"].centery - player.rect.centery
+                            dist = math.hypot(dx, dy)
+                            if dist != 0:
+                                enemy["knockback_x"] = (dx / dist) * 20
+                                enemy["knockback_y"] = (dy / dist) * 20
+
+        gui.draw()
         fade.draw()
         
         pygame.display.flip()
