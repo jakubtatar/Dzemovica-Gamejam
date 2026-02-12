@@ -605,7 +605,7 @@ def spustit_hru(screen):
             screen.blit(death_text, text_rect)
         
         # attack vizuál
-        if attack_active:
+        if attack_active and not game_over:
             elapsed = pygame.time.get_ticks() - attack_start_time
             progress = elapsed / attack_duration 
 
@@ -641,7 +641,7 @@ def spustit_hru(screen):
                                 enemy["knockback_y"] = (dy / dist) * 20
         
         # NIGHT MODE
-        if game_data["night_mode"]:
+        if game_data["night_mode"] and not game_over:
             # 1. Overlay a svetelný kruh sledujúci hráča
             overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 230))
