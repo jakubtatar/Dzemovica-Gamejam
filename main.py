@@ -14,6 +14,9 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 
+# --- DÔLEŽITÉ: IMPORT ESC MENU ---
+from EscMenu import EscMenu
+
 try:
     from graveDigMinigame import GraveDigMinigame
 except ImportError:
@@ -413,8 +416,13 @@ def spustit_hru(screen):
                 pygame.quit(); sys.exit()
             
             if event.type == pygame.KEYDOWN:
+                # --- NOVÁ ESC LOGIKA ---
                 if event.key == pygame.K_ESCAPE:
-                    return
+                    menu = EscMenu(screen)
+                    vysledok = menu.run()
+                    if vysledok == "quit":
+                        return  # Vráti sa do menu.py
+                
                 if event.key == pygame.K_e:
                     if game_data["current_map"] == "village":
                         npc = game_data.get("npc")
