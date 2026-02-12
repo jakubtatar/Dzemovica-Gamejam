@@ -7,12 +7,19 @@ class Player:
     
     # Initialize the player with position, size, and color
     def __init__(self, x, y, width, height, color):
-        self.rect = pygame.Rect(x, y, width, height)
+        # --- NASTAVENIE HITBOXU ---
+        self.full_height = height  # Uložíme si celú výšku obrázka
+        self.hitbox_height = 25    # Výška kolíznej zóny (nohy)
+
+        # Rect teraz reprezentuje LEN nohy.
+        # Y súradnicu posunieme dole o (celá výška - výška nôh)
+        self.rect = pygame.Rect(x, y + height - self.hitbox_height, width, self.hitbox_height)
+        
         self.color = color
         self.speed = self.player_speed
         self.money = 0
 
-         # --- NAČÍTANIE OBRÁZKOV ---
+        # --- NAČÍTANIE OBRÁZKOV ---
         self.images = {
             "down": pygame.image.load("Resources/Hugo/Hugo_Front1.png").convert_alpha(),
             "up": pygame.image.load("Resources/Hugo/Hugo_Back1.png").convert_alpha(),
@@ -34,9 +41,6 @@ class Player:
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
 
-        keys = pygame.key.get_pressed()
-        dx, dy = 0, 0
-
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             dx -= self.speed
             self.direction = "left"
@@ -53,8 +57,7 @@ class Player:
             dy += self.speed
             self.direction = "down"
 
-
-        # --- pohyb a kontrola kolízií ---
+        # --- pohyb a kontrola kolízií (Hitbox sú len nohy) ---
         self.rect.x += dx
         for wall in collidable_walls:
             if self.rect.colliderect(wall):
@@ -73,9 +76,13 @@ class Player:
 
         self.current_image = self.images[self.direction]
 
-
-
     # Draw the player on the given surface
     def draw(self, surface, camera):
-        surface.blit(self.current_image, camera.apply(self.rect))
-
+        # Získame pozíciu hitboxu (nôh) na obrazovke
+        rect_on_screen = camera.apply(self.rect)
+        
+        # Obrázok musíme vykresliť vyššie, aby nohy sedeli v hitboxe
+        # Vypočítame Y pozíciu pre obrázok: (Y hitboxu) - (rozdiel výšok)
+        draw_y = rect_on_screen.y - (self.full_height - self.hitbox_height)
+        
+        surface.blit(self.current_image, (rect_on_screen.x, draw_y))
