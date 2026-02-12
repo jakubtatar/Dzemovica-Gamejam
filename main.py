@@ -14,6 +14,9 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 
+# --- OPRAVA 1: Import EscMenu musí byť tu hore ---
+from EscMenu import EscMenu
+
 try:
     from graveDigMinigame import GraveDigMinigame
 except ImportError:
@@ -114,10 +117,10 @@ def spustit_hru(screen):
 
         wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()
         wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()
-
+        
         grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
         grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
-
+        
         # Objekty
         object_well_img = pygame.image.load(r"Resources/Objects/Object_Well.png").convert_alpha()
         object_house_img = pygame.image.load(r"Resources/Objects/Object_House_01.png").convert_alpha()
@@ -354,6 +357,7 @@ def spustit_hru(screen):
 
         if game_data["map_switch_cooldown"] == 0:
             for zone in game_data["change_map_squares"]:
+                # Doplnená podmienka: zmena mapy len ak nie je noc
                 if player.rect.colliderect(zone["rect"]) and not game_data["night_mode"]:
                     stara_mapa = game_data["current_map"]
                     game_data["persistent_graves"][stara_mapa] = game_data["graves"]
@@ -377,15 +381,19 @@ def spustit_hru(screen):
                 pygame.quit(); sys.exit()
             
             if event.type == pygame.KEYDOWN:
+                # --- OPRAVA 2: ESC MENU ---
                 if event.key == pygame.K_ESCAPE:
-                    return
+                    menu = EscMenu(screen)
+                    vysledok = menu.run()
+                    if vysledok == "quit":
+                        return  # Ukončí hru a vráti sa do menu
+                
                 if event.key == pygame.K_e:
                     if game_data["current_map"] == "village":
                         npc = game_data.get("npc")
                         if npc and player.rect.colliderect(npc.rect.inflate(40,40)):
                             dialogue_active = True
                             dialogue_index = 0
-
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
                 if dialogue_active and event.button == 1:
@@ -395,13 +403,14 @@ def spustit_hru(screen):
                         dialogue_active = False
                     continue
 
+                # ÚTOK MEČOM (Ľavé tlačidlo)
                 if event.button == 1 and not game_over: 
-                    if selected_item == "[1] Sword":  # uprav podľa názvu v GUI
+                    if selected_item == "[1] Sword": 
                         attack_active = True
                         attack_start_time = pygame.time.get_ticks()
-
                         attack_size = 100
 
+                        # Určenie zóny útoku podľa smeru hráča
                         if player.direction == "right":
                             attack_rect = pygame.Rect(player.rect.right, player.rect.centery-20, attack_size, 40)
                         elif player.direction == "left":
@@ -411,22 +420,15 @@ def spustit_hru(screen):
                         elif player.direction == "down":
                             attack_rect = pygame.Rect(player.rect.centerx-20, player.rect.bottom, 40, attack_size)
 
-                        # DAMAGE CHECK
+                        # DAMAGE CHECK pre nepriateľov
                         for enemy in game_data["enemies"]:
-                            enemy["rect"].x += enemy["knockback_x"]
-                            enemy["rect"].y += enemy["knockback_y"]
-
-                            enemy["knockback_x"] *= 0.85
-                            enemy["knockback_y"] *= 0.85
                             if attack_rect.colliderect(enemy["rect"]):
-
                                 enemy["health"] -= 15
-
-                                # --- KNOCKBACK ---
+                                
+                                # Knockback výpočet
                                 dx = enemy["rect"].centerx - player.rect.centerx
                                 dy = enemy["rect"].centery - player.rect.centery
                                 length = math.hypot(dx, dy)
-
                                 if length != 0:
                                     dx /= length
                                     dy /= length
@@ -434,7 +436,9 @@ def spustit_hru(screen):
                                 knockback_strength = 15
                                 enemy["knockback_x"] = dx * knockback_strength
                                 enemy["knockback_y"] = dy * knockback_strength
-                    if selected_item == "[2] Shovel":
+
+                    # KOPANIE LOPATOU
+                    elif selected_item == "[2] Shovel":
                         if game_data["current_map"] == "cmitermap":
                             minigame = GraveDigMinigame(screen)
                             reward = minigame.run()
@@ -454,29 +458,28 @@ def spustit_hru(screen):
                         else:
                             print("Pôda je tu príliš tvrdá na kopanie.")
 
-                # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
+                # PRAVÉ TLAČIDLO (Nočný režim a spawn duchov)
                 elif event.button == 3 and not game_over: 
-                   if not game_data["night_mode"]:
-                    game_data["night_mode"] = True
-                    game_data["night_timer"] = 60 * 60  # 60 sekúnd pri 60 FPS
-                    game_data["night_text_timer"] = 180
-                    for pit in game_data["grave_pits"]: 
-                        pit['state'] = 'opened' 
-                    
-                    if game_data["current_map"] == "cmitermap":
-                        for _ in range(5):
-                            dist_x = random.randint(300, 600) * random.choice([-1, 1])
-                            dist_y = random.randint(300, 600) * random.choice([-1, 1])
-                            new_enemy_rect = ghost_img.get_rect(topleft=(player.rect.x + dist_x, player.rect.y + dist_y))
-                            game_data["enemies"].append({
-                                "rect": new_enemy_rect,
-                                "image": ghost_img,
-                                "health": 30,
-                                "max_health": 30,
-                                "knockback_x": 0,
-                                "knockback_y": 0
-                            })
-
+                    if not game_data["night_mode"]:
+                        game_data["night_mode"] = True
+                        game_data["night_timer"] = 60 * 60 
+                        game_data["night_text_timer"] = 180
+                        for pit in game_data["grave_pits"]: 
+                            pit['state'] = 'opened' 
+                        
+                        if game_data["current_map"] == "cmitermap":
+                            for _ in range(5):
+                                dist_x = random.randint(300, 600) * random.choice([-1, 1])
+                                dist_y = random.randint(300, 600) * random.choice([-1, 1])
+                                new_enemy_rect = ghost_img.get_rect(topleft=(player.rect.x + dist_x, player.rect.y + dist_y))
+                                game_data["enemies"].append({
+                                    "rect": new_enemy_rect,
+                                    "image": ghost_img,
+                                    "health": 30,
+                                    "max_health": 30,
+                                    "knockback_x": 0,
+                                    "knockback_y": 0
+                                })
 
             gui.handle_input(event)
 
