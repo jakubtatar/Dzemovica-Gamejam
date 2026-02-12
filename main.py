@@ -120,6 +120,7 @@ def spustit_hru(screen):
         object_church_img = pygame.image.load(r"Resources/Objects/Object_Church.png").convert_alpha()
         object_shop_img = pygame.image.load(r"Resources/Objects/Object_Zabkas.png").convert_alpha()
         object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
+        object_taverna_img = pygame.image.load(r"Resources/Objects/Object_Taverna.png").convert_alpha()
 
         # --- NOVÝ OBRÁZOK DUCHA ---
         ghost_img = pygame.image.load(r"C:\Users\bekem24\AppData\Local\GitHubDesktop\app-3.5.4\Dzemovica-Gamejam\Resources\NPCs\Ghost_Front1.png").convert_alpha()
@@ -160,6 +161,7 @@ def spustit_hru(screen):
     object_church_img = pygame.transform.scale(object_church_img, (TILE_SIZE * 14, TILE_SIZE * 14))
     object_shop_img = pygame.transform.scale(object_shop_img, (TILE_SIZE * 7, TILE_SIZE * 7))
     object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+    object_taverna_img = pygame.transform.scale(object_taverna_img, (TILE_SIZE * 7, TILE_SIZE * 7))
 
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
@@ -276,6 +278,11 @@ def spustit_hru(screen):
             game_data["map_objects"].append({
                 "rect": pygame.Rect(1400, 0, TILE_SIZE * 7, TILE_SIZE * 7),
                 "image": object_shop_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(1900, 0, TILE_SIZE * 7, TILE_SIZE * 7),
+                "image": object_taverna_img,
                 "collidable": True
             })
 
