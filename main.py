@@ -14,9 +14,6 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 
-# --- OPRAVA 1: Import EscMenu musí byť tu hore ---
-from EscMenu import EscMenu
-
 try:
     from graveDigMinigame import GraveDigMinigame
 except ImportError:
@@ -117,10 +114,13 @@ def spustit_hru(screen):
 
         wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()
         wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()
-        
+
         grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
         grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
-        
+
+        #Voda
+        water_gif = pygame.image.load(r"Resources/Water.gif").convert_alpha()
+
         # Objekty
         object_well_img = pygame.image.load(r"Resources/Objects/Object_Well.png").convert_alpha()
         object_house_img = pygame.image.load(r"Resources/Objects/Object_House_01.png").convert_alpha()
@@ -159,6 +159,8 @@ def spustit_hru(screen):
     wall_LD_img = pygame.transform.scale(wall_LD_img, (TILE_SIZE, TILE_SIZE))
     wheat_wall_img = pygame.transform.scale(wheat_wall_img, (TILE_SIZE, TILE_SIZE))
     wheat_wall_top_img = pygame.transform.scale(wheat_wall_top_img, (TILE_SIZE, TILE_SIZE))
+
+    water_gif = pygame.transform.scale(water_gif, (TILE_SIZE, TILE_SIZE))
     
     grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
     grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
@@ -197,6 +199,7 @@ def spustit_hru(screen):
         "night_mode": False,
         "night_timer": 0,
         "night_text_timer": 0,
+        "visible_mapchangers": True, #Developerske nastavenie
     }
 
     def setup_map(map_name):
@@ -263,6 +266,13 @@ def spustit_hru(screen):
                 "target": "crossroad",
                 "spawn": (500, 100)
             })
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(250, 430, TILE_SIZE, TILE_SIZE),
+                "target": "house",
+                "spawn": (150, 450)
+            })
+
             game_data["map_objects"].append({
                 "rect": pygame.Rect(200, 100, TILE_SIZE * 7, TILE_SIZE * 7),
                 "image": object_house_img,
@@ -320,6 +330,18 @@ def spustit_hru(screen):
                 "npc_ref": priest_npc
             })
 
+        elif map_name == "house":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/house.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(150, 550, TILE_SIZE, TILE_SIZE),
+                "target": "houseplace",
+                "spawn": (250, 500)
+            })
+
 
         # Objekty do kolízií (len kolidovateľné)
         for obj in game_data["map_objects"]:
@@ -357,8 +379,8 @@ def spustit_hru(screen):
 
         if game_data["map_switch_cooldown"] == 0:
             for zone in game_data["change_map_squares"]:
-                # Doplnená podmienka: zmena mapy len ak nie je noc
                 if player.rect.colliderect(zone["rect"]) and not game_data["night_mode"]:
+                    fade.fade_in()
                     stara_mapa = game_data["current_map"]
                     game_data["persistent_graves"][stara_mapa] = game_data["graves"]
                     game_data["persistent_pits"][stara_mapa] = game_data["grave_pits"]
@@ -381,19 +403,15 @@ def spustit_hru(screen):
                 pygame.quit(); sys.exit()
             
             if event.type == pygame.KEYDOWN:
-                # --- OPRAVA 2: ESC MENU ---
                 if event.key == pygame.K_ESCAPE:
-                    menu = EscMenu(screen)
-                    vysledok = menu.run()
-                    if vysledok == "quit":
-                        return  # Ukončí hru a vráti sa do menu
-                
+                    return
                 if event.key == pygame.K_e:
                     if game_data["current_map"] == "village":
                         npc = game_data.get("npc")
                         if npc and player.rect.colliderect(npc.rect.inflate(40,40)):
                             dialogue_active = True
                             dialogue_index = 0
+
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
                 if dialogue_active and event.button == 1:
@@ -403,14 +421,13 @@ def spustit_hru(screen):
                         dialogue_active = False
                     continue
 
-                # ÚTOK MEČOM (Ľavé tlačidlo)
                 if event.button == 1 and not game_over: 
-                    if selected_item == "[1] Sword": 
+                    if selected_item == "[1] Sword":  # uprav podľa názvu v GUI
                         attack_active = True
                         attack_start_time = pygame.time.get_ticks()
+
                         attack_size = 100
 
-                        # Určenie zóny útoku podľa smeru hráča
                         if player.direction == "right":
                             attack_rect = pygame.Rect(player.rect.right, player.rect.centery-20, attack_size, 40)
                         elif player.direction == "left":
@@ -420,15 +437,22 @@ def spustit_hru(screen):
                         elif player.direction == "down":
                             attack_rect = pygame.Rect(player.rect.centerx-20, player.rect.bottom, 40, attack_size)
 
-                        # DAMAGE CHECK pre nepriateľov
+                        # DAMAGE CHECK
                         for enemy in game_data["enemies"]:
+                            enemy["rect"].x += enemy["knockback_x"]
+                            enemy["rect"].y += enemy["knockback_y"]
+
+                            enemy["knockback_x"] *= 0.85
+                            enemy["knockback_y"] *= 0.85
                             if attack_rect.colliderect(enemy["rect"]):
+
                                 enemy["health"] -= 15
-                                
-                                # Knockback výpočet
+
+                                # --- KNOCKBACK ---
                                 dx = enemy["rect"].centerx - player.rect.centerx
                                 dy = enemy["rect"].centery - player.rect.centery
                                 length = math.hypot(dx, dy)
+
                                 if length != 0:
                                     dx /= length
                                     dy /= length
@@ -436,9 +460,7 @@ def spustit_hru(screen):
                                 knockback_strength = 15
                                 enemy["knockback_x"] = dx * knockback_strength
                                 enemy["knockback_y"] = dy * knockback_strength
-
-                    # KOPANIE LOPATOU
-                    elif selected_item == "[2] Shovel":
+                    if selected_item == "[2] Shovel":
                         if game_data["current_map"] == "cmitermap":
                             minigame = GraveDigMinigame(screen)
                             reward = minigame.run()
@@ -458,28 +480,29 @@ def spustit_hru(screen):
                         else:
                             print("Pôda je tu príliš tvrdá na kopanie.")
 
-                # PRAVÉ TLAČIDLO (Nočný režim a spawn duchov)
+                # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
                 elif event.button == 3 and not game_over: 
-                    if not game_data["night_mode"]:
-                        game_data["night_mode"] = True
-                        game_data["night_timer"] = 60 * 60 
-                        game_data["night_text_timer"] = 180
-                        for pit in game_data["grave_pits"]: 
-                            pit['state'] = 'opened' 
-                        
-                        if game_data["current_map"] == "cmitermap":
-                            for _ in range(5):
-                                dist_x = random.randint(300, 600) * random.choice([-1, 1])
-                                dist_y = random.randint(300, 600) * random.choice([-1, 1])
-                                new_enemy_rect = ghost_img.get_rect(topleft=(player.rect.x + dist_x, player.rect.y + dist_y))
-                                game_data["enemies"].append({
-                                    "rect": new_enemy_rect,
-                                    "image": ghost_img,
-                                    "health": 30,
-                                    "max_health": 30,
-                                    "knockback_x": 0,
-                                    "knockback_y": 0
-                                })
+                   if not game_data["night_mode"]:
+                    game_data["night_mode"] = True
+                    game_data["night_timer"] = 60 * 60  # 60 sekúnd pri 60 FPS
+                    game_data["night_text_timer"] = 180
+                    for pit in game_data["grave_pits"]: 
+                        pit['state'] = 'opened' 
+                    
+                    if game_data["current_map"] == "cmitermap":
+                        for _ in range(5):
+                            dist_x = random.randint(300, 600) * random.choice([-1, 1])
+                            dist_y = random.randint(300, 600) * random.choice([-1, 1])
+                            new_enemy_rect = ghost_img.get_rect(topleft=(player.rect.x + dist_x, player.rect.y + dist_y))
+                            game_data["enemies"].append({
+                                "rect": new_enemy_rect,
+                                "image": ghost_img,
+                                "health": 30,
+                                "max_health": 30,
+                                "knockback_x": 0,
+                                "knockback_y": 0
+                            })
+
 
             gui.handle_input(event)
 
@@ -527,8 +550,14 @@ def spustit_hru(screen):
                 wall_img, wall_front_img, wall_top_img,
                 wall_left_img, wall_right_img,
                 wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img,
-                wheat_wall_img, wheat_wall_top_img
+                wheat_wall_img, wheat_wall_top_img, water_gif
             )
+
+        if game_data["visible_mapchangers"]:
+            for zone in game_data["change_map_squares"]:
+                debug_surf = pygame.Surface((zone["rect"].width, zone["rect"].height), pygame.SRCALPHA)
+                debug_surf.fill((255, 255, 0, 120)) # Žltá je lepšie vidieť na tráve
+                screen.blit(debug_surf, camera.apply(zone["rect"]))
 
         for pit in game_data["grave_pits"]:
             image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
