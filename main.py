@@ -112,6 +112,8 @@ def spustit_hru(screen):
         wall_RD_img = pygame.image.load(r"Resources/Walls/Wall_RD.png").convert_alpha()
         wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()
 
+        path_img = pygame.image.load(r"Resources/Floors/Floor_Path.png").convert_alpha()
+
         wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()
         wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()
 
@@ -161,6 +163,7 @@ def spustit_hru(screen):
     wheat_wall_top_img = pygame.transform.scale(wheat_wall_top_img, (TILE_SIZE, TILE_SIZE))
 
     water_gif = pygame.transform.scale(water_gif, (TILE_SIZE, TILE_SIZE))
+    path_img = pygame.transform.scale(path_img, (TILE_SIZE, TILE_SIZE))
     
     grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
     grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
@@ -286,7 +289,7 @@ def spustit_hru(screen):
             player.rect.topleft = (100, 500)
 
             game_data["change_map_squares"].append({
-                "rect": pygame.Rect(0, 300, TILE_SIZE, TILE_SIZE * 3),
+                "rect": pygame.Rect(0, 500, TILE_SIZE, TILE_SIZE * 3),
                 "target": "crossroad",
                 "spawn": (900, 500)
             })
@@ -550,7 +553,7 @@ def spustit_hru(screen):
                 wall_img, wall_front_img, wall_top_img,
                 wall_left_img, wall_right_img,
                 wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img,
-                wheat_wall_img, wheat_wall_top_img, water_gif
+                wheat_wall_img, wheat_wall_top_img, water_gif, path_img
             )
 
         if game_data["visible_mapchangers"]:
