@@ -130,6 +130,7 @@ def spustit_hru(screen):
         object_shop_img = pygame.image.load(r"Resources/Objects/Object_Zabkas.png").convert_alpha()
         object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
         object_taverna_img = pygame.image.load(r"Resources/Objects/Object_Taverna.png").convert_alpha()
+        object_bridge_img = pygame.image.load(r"Resources/Objects/Object_Bridge.png").convert_alpha()
 
         # --- NOVÝ OBRÁZOK DUCHA ---
         ghost_img = pygame.image.load(r"Resources/NPCs/Ghost_Front1.png").convert_alpha()
@@ -174,6 +175,7 @@ def spustit_hru(screen):
     object_shop_img = pygame.transform.scale(object_shop_img, (TILE_SIZE * 7, TILE_SIZE * 7))
     object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
     object_taverna_img = pygame.transform.scale(object_taverna_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+    object_bridge_img = pygame.transform.scale(object_bridge_img, (TILE_SIZE * 3, TILE_SIZE * 3))
 
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
@@ -292,6 +294,11 @@ def spustit_hru(screen):
                 "rect": pygame.Rect(0, 600, TILE_SIZE, TILE_SIZE * 3),
                 "target": "crossroad",
                 "spawn": (900, 500)
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(550, 600, TILE_SIZE * 3, TILE_SIZE * 3),
+                "image": object_bridge_img,
+                "collidable": False
             })
             game_data["map_objects"].append({
                 "rect": pygame.Rect(600, -400, TILE_SIZE * 14, TILE_SIZE * 14),
