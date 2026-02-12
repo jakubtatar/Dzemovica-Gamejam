@@ -255,7 +255,7 @@ def spustit_hru(screen):
             game_data["change_map_squares"].append({
                 "rect": pygame.Rect(1000, 450, TILE_SIZE, TILE_SIZE * 3),
                 "target": "village",
-                "spawn": (200, 350)
+                "spawn": (200, 700)
             })
 
         elif map_name == "houseplace":
@@ -289,7 +289,7 @@ def spustit_hru(screen):
             player.rect.topleft = (100, 500)
 
             game_data["change_map_squares"].append({
-                "rect": pygame.Rect(0, 500, TILE_SIZE, TILE_SIZE * 3),
+                "rect": pygame.Rect(0, 600, TILE_SIZE, TILE_SIZE * 3),
                 "target": "crossroad",
                 "spawn": (900, 500)
             })
