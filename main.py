@@ -14,7 +14,6 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 
-
 try:
     from graveDigMinigame import GraveDigMinigame
 except ImportError:
@@ -122,11 +121,15 @@ def spustit_hru(screen):
         object_shop_img = pygame.image.load(r"Resources/Objects/Object_Zabkas.png").convert_alpha()
         object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
 
+        # --- NOVÝ OBRÁZOK DUCHA ---
+        ghost_img = pygame.image.load(r"C:\Users\bekem24\AppData\Local\GitHubDesktop\app-3.5.4\Dzemovica-Gamejam\Resources\NPCs\Ghost_Front1.png").convert_alpha()
+        ghost_img = pygame.transform.scale(ghost_img, (50, 70)) # Zmena mierky (šírka 50, výška 70)
+
     except Exception as e:
         print(f"CHYBA PRI NAČÍTANÍ OBRÁZKOV: {e}")
         return
 
-    # Škálovanie
+    # Škálovanie ostatných
     tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
     tile2_img = pygame.transform.scale(tile2_img, (TILE_SIZE, TILE_SIZE))
     hedgefront_img = pygame.transform.scale(hedgefront_img, (TILE_SIZE, TILE_SIZE))
@@ -178,7 +181,7 @@ def spustit_hru(screen):
         "current_map": "",
         "graves": [],       
         "grave_pits": [],
-        "enemies": [], # Zoznam pre červených nepriateľov
+        "enemies": [], # Zoznam pre duchov (ukladáme slovníky: {"rect": Rect, "image": Surface})
         "persistent_graves": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "persistent_pits": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "map_switch_cooldown": 0
@@ -189,7 +192,6 @@ def spustit_hru(screen):
         game_data["map_objects"] = []
         game_data["change_map_squares"] = []
         game_data["collidable_walls"] = []
-        # Vymažeme nepriateľov pri zmene mapy
         game_data["enemies"] = []
 
         if map_name == "cmitermap":
@@ -277,7 +279,7 @@ def spustit_hru(screen):
                 "collidable": True
             })
 
-            priest_x, priest_y = 800, 400  # tu nastav svoju pozíciu
+            priest_x, priest_y = 800, 400
             priest_width, priest_height = 60, 100
 
             priest_npc = NPC(
@@ -292,15 +294,13 @@ def spustit_hru(screen):
                 ]
             )
 
-            # uloženie do game_data
             game_data["npc"] = priest_npc
 
-            # pridanie do map_objects, aby sa vykresľoval
             game_data["map_objects"].append({
                 "rect": priest_npc.rect,
                 "image": priest__img,
-                "collidable": False,  # môžeš nastaviť True, ak chceš, aby hráč nemohol prejsť cez kňaza
-                "npc_ref": priest_npc  # optional, aby si mal odkaz na NPC
+                "collidable": False,
+                "npc_ref": priest_npc
             })
 
 
@@ -369,7 +369,7 @@ def spustit_hru(screen):
                         dialogue_active = False
                     continue
 
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: 
+                if event.button == 1: 
                     if selected_item == "[2] Shovel":
                         if game_data["current_map"] == "cmitermap":
                             minigame = GraveDigMinigame(screen)
@@ -392,38 +392,35 @@ def spustit_hru(screen):
 
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
                 elif event.button == 3: 
-                    # 1. Otvoriť hroby
                     for pit in game_data["grave_pits"]: 
                         pit['state'] = 'opened' 
                     
-                    # 2. Spawn nepriateľov (len ak sme na cintoríne)
                     if game_data["current_map"] == "cmitermap":
                          for _ in range(5):
-                            # Náhodná vzdialenosť od 300 do 600 pixelov (trochu ďalej)
                             dist_x = random.randint(300, 600) * random.choice([-1, 1])
                             dist_y = random.randint(300, 600) * random.choice([-1, 1])
                             
                             spawn_x = player.rect.x + dist_x
                             spawn_y = player.rect.y + dist_y
                             
-                            enemy_rect = pygame.Rect(spawn_x, spawn_y, 30, 30)
-                            game_data["enemies"].append(enemy_rect)
+                            # Tu používame obrázok ducha
+                            new_enemy_rect = ghost_img.get_rect(topleft=(spawn_x, spawn_y))
+                            game_data["enemies"].append({"rect": new_enemy_rect, "image": ghost_img})
 
             gui.handle_input(event)
 
         # --- UPDATE NEPRIATEĽOV ---
         for enemy in game_data["enemies"]:
-            # Rýchlosť znížená na 1 (pomalší)
+            e_rect = enemy["rect"]
             speed = 1
-            if player.rect.x > enemy.x: enemy.x += speed
-            if player.rect.x < enemy.x: enemy.x -= speed
-            if player.rect.y > enemy.y: enemy.y += speed
-            if player.rect.y < enemy.y: enemy.y -= speed
+            if player.rect.x > e_rect.x: e_rect.x += speed
+            if player.rect.x < e_rect.x: e_rect.x -= speed
+            if player.rect.y > e_rect.y: e_rect.y += speed
+            if player.rect.y < e_rect.y: e_rect.y -= speed
             
-            # Kontrola dotyku s hráčom
-            if player.rect.colliderect(enemy):
+            if player.rect.colliderect(e_rect):
                 print("GAME OVER - Zomrel si!")
-                return # Vráti do menu (vypne hru)
+                return 
 
         if not dialogue_active:
             player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
@@ -434,7 +431,6 @@ def spustit_hru(screen):
         # --- VYKRESĽOVANIE ---
         screen.fill((8, 50, 20))
 
-        # 1. Vrstva: Podlaha a steny (Tilemap)
         for rect, tile_type in game_data["walls"]:
             maps_manager.drawTilemap(
                 screen, tile_type, rect, camera,
@@ -449,50 +445,22 @@ def spustit_hru(screen):
                 wheat_wall_img, wheat_wall_top_img
             )
 
-        # 2. Vrstva: Jamy (Sú na zemi, vždy pod hráčom a objektmi)
         for pit in game_data["grave_pits"]:
             image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
             screen.blit(image_to_draw, camera.apply(pit['rect']))
 
-        # 3. Vrstva: Y-SORTING (Hráč, Objekty, Hroby, Nepriatelia)
-        # Všetky entity, ktoré majú "výšku", dáme do jedného zoznamu a zoradíme podľa Y
+        # Y-SORTING
         render_queue = []
-
-        # Pridaj Hráča
-        render_queue.append({
-            "type": "player",
-            "obj": player,
-            "y": player.rect.bottom # Triedime podľa spodku nôh
-        })
-
-        # Pridaj Objekty (Domy, stromy...)
+        render_queue.append({"type": "player", "obj": player, "y": player.rect.bottom})
         for obj in game_data["map_objects"]:
-            render_queue.append({
-                "type": "object",
-                "obj": obj,
-                "y": obj["rect"].bottom # Triedime podľa spodku kolízneho boxu
-            })
-
-        # Pridaj Hroby (Náhrobné kamene)
+            render_queue.append({"type": "object", "obj": obj, "y": obj["rect"].bottom})
         for grave in game_data["graves"]:
-            render_queue.append({
-                "type": "grave",
-                "obj": grave,
-                "y": grave.rect.bottom
-            })
-
-        # Pridaj Nepriateľov
+            render_queue.append({"type": "grave", "obj": grave, "y": grave.rect.bottom})
         for enemy in game_data["enemies"]:
-            render_queue.append({ 
-                "type": "enemy", 
-                "obj": enemy, 
-                "y": enemy.bottom 
-            })
+            render_queue.append({"type": "enemy", "obj": enemy, "y": enemy["rect"].bottom})
 
-        # Zoradenie podľa Y súradnice (vzostupne - čo je vyššie na obrazovke, vykreslí sa skôr)
         render_queue.sort(key=lambda x: x["y"])
 
-        # Vykreslenie zoradených entít
         for item in render_queue:
             if item["type"] == "player":
                 try: item["obj"].draw(screen, camera)
@@ -503,42 +471,31 @@ def spustit_hru(screen):
             
             elif item["type"] == "object":
                 obj = item["obj"]
-                # Výpočet pozície: obrázok je vyšší ako rect, musí "trčať" hore
                 draw_pos = camera.apply(obj["rect"]).move(0, obj["rect"].height - obj["image"].get_height())
                 screen.blit(obj["image"], draw_pos)
             
             elif item["type"] == "enemy":
-                pygame.draw.rect(screen, (255, 0, 0), camera.apply(item["obj"]))
+                # VYKRESLENIE OBRÁZKA DUCHA
+                screen.blit(item["obj"]["image"], camera.apply(item["obj"]["rect"]))
 
-        # --- "Press E" INTERACT TEXT nad NPC (po vykreslení NPC) ---
+        # --- NPC INTERACT TEXT ---
         npc = game_data.get("npc")
         if npc and player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
             interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
             interact_text = interact_font.render("Press E", True, (255, 255, 0))
-            # vypočíta pozíciu nad hlavou NPC
             text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
             screen.blit(interact_text, camera.apply(text_rect))
 
-        # Dialogy (ak sú aktívne, vykreslíme ich navrchu všetkého)
         if dialogue_active:
-        
-            # Obrázok hráča (ľavá strana)
             screen.blit(player_dialog_img, (50, screen_height - 450))
-
-            # Obrázok kňaza (pravá strana)
             screen.blit(priest_dialog_img, (screen_width - 250, screen_height - 450))
-
             dialogue_box = pygame.Rect(0, screen_height - 200, screen_width, 200)
             pygame.draw.rect(screen, (0,0,0), dialogue_box)
-
             npc = game_data.get("npc")
-
-            # Text
             text = npc.dialogue_lines[dialogue_index]
             rendered_text = font.render(text, True, (255,255,255))
             screen.blit(rendered_text, (50, screen_height - 120))
 
-        # 4. Vrstva: GUI a Fade (Vždy navrchu)
         gui.draw_inventory()
         fade.draw()
         
