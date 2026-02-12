@@ -354,7 +354,7 @@ def spustit_hru(screen):
 
         if game_data["map_switch_cooldown"] == 0:
             for zone in game_data["change_map_squares"]:
-                if player.rect.colliderect(zone["rect"]):
+                if player.rect.colliderect(zone["rect"]) and not game_data["night_mode"]:
                     stara_mapa = game_data["current_map"]
                     game_data["persistent_graves"][stara_mapa] = game_data["graves"]
                     game_data["persistent_pits"][stara_mapa] = game_data["grave_pits"]
@@ -540,7 +540,7 @@ def spustit_hru(screen):
             render_queue.append({"type": "grave", "obj": grave, "y": grave.rect.bottom})
         for enemy in game_data["enemies"]:
             render_queue.append({"type": "enemy", "obj": enemy, "y": enemy["rect"].bottom})
-
+    
         render_queue.sort(key=lambda x: x["y"])
 
         for item in render_queue:
