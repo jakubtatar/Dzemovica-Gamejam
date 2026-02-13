@@ -19,6 +19,8 @@ from EscMenu import EscMenu
 
 try:
     from graveDigMinigame import GraveDigMinigame
+    from graveDigMinigame import TimingDigMinigame
+    from graveDigMinigame import SequenceDigMinigame
 except ImportError:
     print("POZOR: graveDigMinigame.py nenájdený. Kopanie nebude fungovať.")
     class GraveDigMinigame:
@@ -215,6 +217,8 @@ def spustit_hru(screen):
         "night_timer": 0,
         "night_text_timer": 0,
         "visible_mapchangers": True, #Developerske nastavenie
+        "last_dig_time": 0,
+        "dig_cooldown": 2000, # 2 sekundy pauza medzi kopaním (v milisekundách)
     }
 
     def setup_map(map_name):
@@ -520,25 +524,42 @@ def spustit_hru(screen):
                                 knockback_strength = 15
                                 enemy["knockback_x"] = dx * knockback_strength
                                 enemy["knockback_y"] = dy * knockback_strength
-                    if selected_item == "[2] Shovel":
-                        if game_data["current_map"] == "cmitermap":
-                            minigame = GraveDigMinigame(screen)
-                            reward = minigame.run()
+                    if selected_item == "[2] Shovel" and not game_data["night_mode"]:
+                        current_time = pygame.time.get_ticks()
+                        
+                        # 1. Kontrola cooldownu
+                        if current_time - game_data["last_dig_time"] < game_data["dig_cooldown"]:
+                            print("Ešte si unavený...")
+                        elif game_data["current_map"] == "cmitermap":
                             
-                            if not hasattr(player, 'money'): player.money = 0
-                            player.money += reward
+                            # Spustenie minihry
+                            chosen_minigame = random.choice([GraveDigMinigame, TimingDigMinigame, SequenceDigMinigame])
+                            minigame = chosen_minigame(screen)
+                            reward = minigame.run() 
 
-                            gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
-                            gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                            pygame.event.clear() 
                             
-                            new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
-                            new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
-                            
-                            game_data["graves"].append(new_grave) 
-                            game_data["grave_pits"].append(new_pit)
-                            game_data["collidable_walls"].append(new_pit['rect'])
+                            # Nastavíme cooldown hneď po skončení (úspešnom aj neúspešnom)
+                            game_data["last_dig_time"] = pygame.time.get_ticks()
+
+                            # 2. Vyhodnotenie výsledku
+                            if reward > 0:
+                                if not hasattr(player, 'money'): player.money = 0
+                                player.money += reward
+
+                                gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
+                                gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                                
+                                new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
+                                new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
+                                
+                                game_data["graves"].append(new_grave) 
+                                game_data["grave_pits"].append(new_pit)
+                                game_data["collidable_walls"].append(new_pit['rect'])
+                            else:
+                                print("Minihra zatvorená - neúspech.")
                         else:
-                            print("Pôda je tu príliš tvrdá na kopanie.")
+                            print("Tu sa kopať nedá.")
 
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
                 elif event.button == 3 and not game_over: 
@@ -766,7 +787,7 @@ def spustit_hru(screen):
             timer_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 40)
             seconds_left = max(0, game_data["night_timer"] // 60)
             timer_text = timer_font.render(f"The night will end in: {seconds_left}s", True, (255, 255, 255))
-            screen.blit(timer_text, (screen_width // 2 - 120, 20))
+            screen.blit(timer_text, (screen_width // 2 -250, screen_height // 2 +200))
 
             # 3. Koniec noci - upratovanie
             if game_data["night_timer"] <= 0:
