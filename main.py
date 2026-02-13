@@ -14,6 +14,8 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 
+from gamedays import Monday
+
 pygame.mixer.init()
 current_track = None
 
@@ -56,12 +58,6 @@ try:
     from quest import Quest
 except ImportError:
     class Quest: pass 
-try:
-    from objectZone import ObjectZone
-except ImportError:
-    class ObjectZone: pass
-
-
 # ==========================================
 # HLAVNÁ FUNKCIA HRY
 # ==========================================
@@ -171,6 +167,10 @@ def spustit_hru(screen):
         object_taverna_img = pygame.image.load(r"Resources/Objects/Object_Taverna.png").convert_alpha()
         object_bridge_img = pygame.image.load(r"Resources/Objects/Object_Bridge.png").convert_alpha()
 
+        object_bottleshelf_img = pygame.image.load(r"Resources/Objects/Object_BottleShelf.png").convert_alpha()
+        object_barchair_img = pygame.image.load(r"Resources/Objects/Object_BarChair.png").convert_alpha()
+        object_counter_img = pygame.image.load(r"Resources/Objects/Object_Counter.png").convert_alpha()
+
         # --- NOVÝ OBRÁZOK DUCHA ---
         ghost_img = pygame.image.load(r"Resources/NPCs/Ghost_Front1.png").convert_alpha()
         ghost_img = pygame.transform.scale(ghost_img, (50, 70)) # Zmena mierky (šírka 50, výška 70)
@@ -216,6 +216,10 @@ def spustit_hru(screen):
     object_taverna_img = pygame.transform.scale(object_taverna_img, (TILE_SIZE * 7, TILE_SIZE * 7))
     object_bridge_img = pygame.transform.scale(object_bridge_img, (TILE_SIZE * 3, TILE_SIZE * 3))
 
+    #nabytok
+    object_bottleshelf_img = pygame.transform.scale(object_bottleshelf_img, (TILE_SIZE *4, TILE_SIZE *4))
+    object_counter_img = pygame.transform.scale(object_counter_img, (TILE_SIZE *1.5, TILE_SIZE *1.5))
+
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
     player_dialog_img = pygame.image.load("Resources/Hugo/Hugo_Front1.png").convert_alpha()
@@ -253,6 +257,7 @@ def spustit_hru(screen):
         "visible_mapchangers": True, #Developerske nastavenie
         "last_dig_time": 0,
         "dig_cooldown": 2000, # 2 sekundy pauza medzi kopaním (v milisekundách)
+        "gameday": 1
     }
 
     def setup_map(map_name):
@@ -349,11 +354,6 @@ def spustit_hru(screen):
                 "spawn": (400, 500)
             })
             game_data["map_objects"].append({
-                "rect": pygame.Rect(550, 600, TILE_SIZE * 3, TILE_SIZE * 3),
-                "image": object_bridge_img,
-                "collidable": False
-            })
-            game_data["map_objects"].append({
                 "rect": pygame.Rect(900, -400, TILE_SIZE * 14, TILE_SIZE * 14),
                 "image": object_church_img,
                 "collidable": True
@@ -417,13 +417,50 @@ def spustit_hru(screen):
                 "spawn": (1800, 500)
             })
 
-            barman_x, barman_y = 400, 400
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(500, 0, TILE_SIZE * 4, TILE_SIZE * 4),
+                "image": object_bottleshelf_img,
+                "collidable": True
+            })
+
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(300, 0, TILE_SIZE * 4, TILE_SIZE * 4),
+                "image": object_bottleshelf_img,
+                "collidable": True
+            })
+
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(400, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_counter_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(475, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_counter_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(550, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_counter_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(625, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_counter_img,
+                "collidable": True
+            })
+
+            barman_x, barman_y = 400, 150
             barman_width, barman_height = 60, 100
 
+            # V setup_map pod map_name == "taverna"
             barman_npc = NPC(barman_x, barman_y, barman_width, barman_height, 
-                "Resources/NPCs/Barman_Front1.png", 
-                ["Wanna drink something healthy?", "It's a rough night."],
-                barman_dialog_img) # <--- Posielame portrét barmana
+                            "Resources/NPCs/Barman_Front1.png", 
+                            ["Vitaj Hugo! Vyzeráš hrozne.", 
+                            "Tu máš pivo na domáci účet.", 
+                            "Kňaz ťa hľadal, vraj máš prácu na cintoríne."],
+                            barman_dialog_img)
+            barman_npc.name = "Barman" # Pridané meno pre questy
             game_data["npc"] = barman_npc
 
             game_data["map_objects"].append({
@@ -459,6 +496,9 @@ def spustit_hru(screen):
     pygame.draw.rect(sword_surf, (200, 200, 200), (10, 0, sword_length - 10, sword_width)) 
     enemies_hit_this_swing = []
 
+    monday_manager = Monday(screen, player, gui, game_data)
+    monday_manager.start(setup_map)
+
 
     # --- HERNÁ SLUČKA ---
     running = True
@@ -468,6 +508,8 @@ def spustit_hru(screen):
         is_night = game_data.get("night_mode", False) # Získaj stav noci
         handle_music(is_night)
         selected_item = gui.get_selected_item()
+
+        monday_manager.update_quests()
         
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1

@@ -18,8 +18,7 @@ class GUI:
 
         # questy - môžeš meniť počas hry
         self.current_quest = {
-            "title": "Grave Digger",
-            "desc": "Dig 3 graves before nightfall."
+
         }
     
     def draw_outlined_text(
