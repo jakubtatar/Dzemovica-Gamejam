@@ -14,6 +14,9 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 
+pygame.mixer.init()
+current_track = None
+
 # --- DÔLEŽITÉ: IMPORT ESC MENU ---
 from EscMenu import EscMenu
 
@@ -66,6 +69,37 @@ def rotate_surface(surface, angle, pivot, offset):
     rotated_image = pygame.transform.rotate(surface, angle)
     rotated_rect = rotated_image.get_rect(center=pivot + offset)
     return rotated_image, rotated_rect
+
+def handle_music(is_night):
+    global current_track
+        
+        # OPRAVA: Cesta musí byť relatívna (bez úvodného lomítka) 
+        # a zjednoť si priečinky (Music vs Audio)
+    if is_night:
+            target_track = os.path.join("Resources", "Music", "Night.mp3")
+    else:
+            target_track = None # Alebo cesta k dennej hudbe
+
+    if current_track != target_track:
+            try:
+                if target_track:
+                    # Skontrolujeme, či súbor vôbec existuje, než ho načítame
+                    if os.path.exists(target_track):
+                        pygame.mixer.music.fadeout(1000)
+                        pygame.mixer.music.load(target_track)
+                        pygame.mixer.music.play(-1)
+                        pygame.mixer.music.set_volume(0.4)
+                        current_track = target_track
+                        print(f"Hrá hudba: {target_track}")
+                    else:
+                        print(f"CHYBA: Súbor nenájdený na ceste: {os.path.abspath(target_track)}")
+                        # Nastavíme current_track na target_track, aby to nekričalo v každom frame
+                        current_track = target_track 
+                else:
+                    pygame.mixer.music.fadeout(1000)
+                    current_track = None
+            except Exception as e:
+                print(f"Chyba pri načítaní hudby: {e}")
 
 def spustit_hru(screen):
     screen_width, screen_height = screen.get_size()
@@ -431,6 +465,8 @@ def spustit_hru(screen):
     game_over = False
 
     while running:
+        is_night = game_data.get("night_mode", False) # Získaj stav noci
+        handle_music(is_night)
         selected_item = gui.get_selected_item()
         
         if game_data["map_switch_cooldown"] > 0:
