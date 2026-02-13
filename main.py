@@ -187,6 +187,13 @@ def spustit_hru(screen):
 
     priest__img = pygame.image.load("Resources/NPCs/Priest_Front1.png").convert_alpha()
     priest__img = pygame.transform.scale(priest__img, (50, 100))
+
+    barman__img = pygame.image.load("Resources/NPCs/Barman_Front1.png").convert_alpha()
+    barman__img = pygame.transform.scale(barman__img, (50, 100))
+
+    barman_dialog_img = pygame.image.load("Resources/NPCs/Barman_Front1.png").convert_alpha()
+    barman_dialog_img = pygame.transform.scale(barman_dialog_img, (200, 350))
+
     priest_dialog_img = pygame.image.load("Resources/NPCs/Priest_Front1.png").convert_alpha()
     priest_dialog_img = pygame.transform.scale(priest_dialog_img, (200, 350))
 
@@ -298,6 +305,11 @@ def spustit_hru(screen):
                 "target": "crossroad",
                 "spawn": (900, 500)
             })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(1750, 320, TILE_SIZE*3, TILE_SIZE * 3),
+                "target": "taverna",
+                "spawn": (400, 500)
+            })
             game_data["map_objects"].append({
                 "rect": pygame.Rect(550, 600, TILE_SIZE * 3, TILE_SIZE * 3),
                 "image": object_bridge_img,
@@ -329,17 +341,10 @@ def spustit_hru(screen):
             priest_x, priest_y = 1400, 230
             priest_width, priest_height = 60, 100
 
-            priest_npc = NPC(
-                priest_x, priest_y,
-                priest_width, priest_height,
-                "Resources/NPCs/Priest_Front1.png",
-                [
-                    "My son...",
-                    "Darkness is spreading across the land.",
-                    "You need to protect the village.",
-                    "God be with you."
-                ]
-            )
+            priest_npc = NPC(priest_x, priest_y, priest_width, priest_height, 
+                 "Resources/NPCs/Priest_Front1.png", 
+                 ["My son...", "Darkness is spreading.", "God be with you."],
+                 priest_dialog_img) # <--- Posielame portrét kňaza
 
             game_data["npc"] = priest_npc
 
@@ -361,6 +366,36 @@ def spustit_hru(screen):
                 "target": "houseplace",
                 "spawn": (250, 500)
             })
+
+        elif map_name == "taverna":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/taverna.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(300, 550, TILE_SIZE*3, TILE_SIZE),
+                "target": "village",
+                "spawn": (1800, 500)
+            })
+
+            barman_x, barman_y = 400, 400
+            barman_width, barman_height = 60, 100
+
+            barman_npc = NPC(barman_x, barman_y, barman_width, barman_height, 
+                "Resources/NPCs/Barman_Front1.png", 
+                ["Wanna drink something healthy?", "It's a rough night."],
+                barman_dialog_img) # <--- Posielame portrét barmana
+            game_data["npc"] = barman_npc
+
+            game_data["map_objects"].append({
+                "rect": barman_npc.rect,
+                "image": barman__img,
+                "collidable": False,
+                "npc_ref": barman_npc
+            })
+
+        
 
 
         # Objekty do kolízií (len kolidovateľné)
@@ -431,9 +466,9 @@ def spustit_hru(screen):
                         return  # Vráti sa do menu.py
                 
                 if event.key == pygame.K_e:
-                    if game_data["current_map"] == "village":
+                    if event.key == pygame.K_e:
                         npc = game_data.get("npc")
-                        if npc and player.rect.colliderect(npc.rect.inflate(40,40)):
+                        if npc and player.rect.colliderect(npc.rect.inflate(40, 40)):
                             dialogue_active = True
                             dialogue_index = 0
 
@@ -639,14 +674,23 @@ def spustit_hru(screen):
             screen.blit(interact_text, camera.apply(text_rect))
 
         if dialogue_active:
-            screen.blit(player_dialog_img, (50, screen_height - 450))
-            screen.blit(priest_dialog_img, (screen_width - 250, screen_height - 450))
-            dialogue_box = pygame.Rect(0, screen_height - 200, screen_width, 200)
-            pygame.draw.rect(screen, (0,0,0), dialogue_box)
             npc = game_data.get("npc")
-            text = npc.dialogue_lines[dialogue_index]
-            rendered_text = font.render(text, True, (255,255,255))
-            screen.blit(rendered_text, (50, screen_height - 120))
+            if npc:
+                # 1. Portrét hráča (vľavo)
+                screen.blit(player_dialog_img, (50, screen_height - 450))
+                
+                # 2. Portrét NPC (vpravo - dynamicky podľa toho, s kým sa rozprávaš)
+                screen.blit(npc.portrait, (screen_width - 250, screen_height - 450))
+                
+                # 3. Dialógové okno
+                dialogue_box = pygame.Rect(0, screen_height - 200, screen_width, 200)
+                pygame.draw.rect(screen, (0, 0, 0, 200), dialogue_box) # Pridaná jemná priehľadnosť
+                pygame.draw.rect(screen, (255, 255, 255), dialogue_box, 2) # Biely okraj pre eleganciu
+                
+                # 4. Text
+                text = npc.dialogue_lines[dialogue_index]
+                rendered_text = font.render(text, True, (255, 255, 255))
+                screen.blit(rendered_text, (50, screen_height - 120))
 
         if game_over:
             # Šedý overlay
