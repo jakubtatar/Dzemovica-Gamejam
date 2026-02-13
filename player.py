@@ -11,7 +11,7 @@ class Player:
         self.image_width = width
         self.image_height = height
         
-        # --- HITBOX (Optimalizovaný na nohy) ---
+        # --- HITBOX ---
         self.hitbox_w = width - 12
         self.hitbox_h = 20
         start_rect_x = x + (self.image_width - self.hitbox_w) // 2
@@ -27,7 +27,7 @@ class Player:
         self.direction = "down"
         self.frame_index = 0
         self.animation_timer = 0
-        self.animation_speed = 0.15 # Rýchlosť prepínania (uprav podľa chuti)
+        self.animation_speed = 0.15 
         self.is_moving = False
 
         self.animations = {
@@ -37,7 +37,6 @@ class Player:
             "right": []
         }
 
-        # Pomocná funkcia na bezpečné načítanie a škálovanie
         def load_img(path):
             try:
                 img = pygame.image.load(path).convert_alpha()
@@ -47,14 +46,23 @@ class Player:
                 surf.fill(self.color)
                 return surf
 
-        # Načítanie Right animácií (1=stojí, 2-4=pohyb)
+        # Načítanie Right animácií (1=stojí, 2-5=pohyb)
+        # Použil som range(1, 6) podľa tvojho kódu (teda 5 obrázkov celkovo)
         for i in range(1, 6):
-            self.animations["right"].append(load_img(f"Resources/Hugo/Hugo_Right{i}.png"))
+            img_right = load_img(f"Resources/Hugo/Hugo_Right{i}.png")
+            self.animations["right"].append(img_right)
+            
+            # AUTOMATICKÉ VRÁTENIE (FLIP) PRE LEFT
+            img_left = pygame.transform.flip(img_right, True, False)
+            self.animations["left"].append(img_left)
+
+            img_back = load_img(f"Resources/Hugo/Hugo_Back{i}.png")
+            self.animations["up"].append(img_back)
+
+            img_front = load_img(f"Resources/Hugo/Hugo_Front{i}.png")
+            self.animations["down"].append(img_front)
         
-        # Pre ostatné smery zatiaľ načítame aspoň ten jeden, čo máš (aby to nepadlo)
-        self.animations["down"].append(load_img("Resources/Hugo/Hugo_Front1.png"))
-        self.animations["up"].append(load_img("Resources/Hugo/Hugo_Back1.png"))
-        self.animations["left"].append(load_img("Resources/Hugo/Hugo_Left1.png"))
+        # Ostatné smery
 
         self.current_image = self.animations[self.direction][0]
 
@@ -64,7 +72,6 @@ class Player:
         move_y = 0
         self.is_moving = False
 
-        # Vstupy
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             move_x = -1
             self.direction = "left"
@@ -79,14 +86,12 @@ class Player:
             move_y = 1
             self.direction = "down"
 
-        # Kontrola, či sa hýbeme
         if move_x != 0 or move_y != 0:
             self.is_moving = True
             if move_x != 0 and move_y != 0:
                 move_x *= 0.7071
                 move_y *= 0.7071
 
-        # Kolízie (X a Y)
         dx, dy = move_x * self.speed, move_y * self.speed
         
         self.rect.x += dx
@@ -101,23 +106,23 @@ class Player:
                 if dy > 0: self.rect.bottom = wall.top
                 if dy < 0: self.rect.top = wall.bottom
 
-        # --- LOGIKA ANIMÁCIE ---
+        # --- UNIVERZÁLNA LOGIKA ANIMÁCIE ---
         if self.is_moving:
-            # Ak sa hýbeš doprava a máš viac obrázkov
-            if self.direction == "right" and len(self.animations["right"]) > 1:
+            # Kontrolujeme, či pre aktuálny smer máme dosť obrázkov na animáciu
+            if len(self.animations[self.direction]) > 1:
                 self.animation_timer += self.animation_speed
                 if self.animation_timer >= 1:
                     self.animation_timer = 0
-                    # Cyklíme len indexy 1, 2, 3 (čo sú obrázky Right2, Right3, Right4)
                     self.frame_index += 1
-                    if self.frame_index > 3: # Reset späť na druhý obrázok
+                    # Ak máš 5 obrázkov, indexy sú 0,1,2,3,4. 
+                    # Index 0 je "stojí", takže pohyb cyklíme od 1 po 4.
+                    if self.frame_index >= len(self.animations[self.direction]):
                         self.frame_index = 1
-                self.current_image = self.animations["right"][self.frame_index]
+                self.current_image = self.animations[self.direction][self.frame_index]
             else:
-                # Pre ostatné smery (zatiaľ len jeden obrázok)
                 self.current_image = self.animations[self.direction][0]
         else:
-            # Ak hráč stojí, vráť prvý obrázok (Hugo_Right1, Front1, atď.)
+            # Stojíme -> prvý obrázok
             self.frame_index = 0
             self.current_image = self.animations[self.direction][0]
 
