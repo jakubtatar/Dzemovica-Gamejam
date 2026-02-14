@@ -22,8 +22,8 @@ from gamedays import Tuesday
 from gamedays import Wednesday
 from gamedays import Thursday
 from gamedays import Friday
-from gamedays import Saturday
-from gamedays import Sunday
+# from gamedays import Saturday
+# from gamedays import Sunday
 
 pygame.mixer.init()
 current_track = None
@@ -653,6 +653,15 @@ def spustit_hru(screen):
                     "collidable": False,
                     "npc_ref": boss_npc
                 })
+
+            tree_positions = [(0, 0),(350, 0),(0, 200),(350, 200),(0, 400),(350, 400),(0, 600),(350, 600),
+                              (0, 800),(350, 800)]
+            for pos in tree_positions:
+                game_data["map_objects"].append({
+                    "rect": pygame.Rect(pos[0], pos[1], TILE_SIZE * 7, TILE_SIZE * 7),
+                    "image": object_tree_img,
+                    "collidable": False
+                })
             
         # Objekty do kolízií (len kolidovateľné)
         for obj in game_data["map_objects"]:
@@ -685,8 +694,8 @@ def spustit_hru(screen):
     wednesday_manager = Wednesday(screen, player, gui, game_data)
     thursday_manager = Thursday(screen, player, gui, game_data)
     friday_manager = Friday(screen, player, gui, game_data)
-    saturday_manager = Saturday(screen, player, gui, game_data)
-    sunday_manager = Sunday(screen, player, gui, game_data)
+    # saturday_manager = Saturday(screen, player, gui, game_data)
+    # sunday_manager = Sunday(screen, player, gui, game_data)
 
     current_day_manager = friday_manager
     player.day = "Monday"
@@ -749,17 +758,18 @@ def spustit_hru(screen):
 
             elif player.day == "Friday" and game_data.get("night_finished"):
                 player.day = "Saturday"
-                current_day_manager = saturday_manager
-                current_day_manager.start(setup_map)
+                # current_day_manager = saturday_manager
+                # acurrent_day_manager.start(setup_map)
                 game_data["night_mode"] = False
                 game_data["night_finished"] = False
+                pygame.quit()
 
-            elif player.day == "Saturday" and game_data.get("night_finished"):
-                player.day = "Sunday"
-                current_day_manager = sunday_manager
-                current_day_manager.start(setup_map)
-                game_data["night_mode"] = False
-                game_data["night_finished"] = False
+            # elif player.day == "Saturday" and game_data.get("night_finished"):
+            #     player.day = "Sunday"
+            #     current_day_manager = sunday_manager
+            #     current_day_manager.start(setup_map)
+            #     game_data["night_mode"] = False
+            #     game_data["night_finished"] = False
         
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1
