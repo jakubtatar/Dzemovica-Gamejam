@@ -28,7 +28,7 @@ class GUI:
             {"name": "Stamina Boots", "price": 400, "type": "upgrade", "desc": "+20% Speed"},
             {"name": "Money Bag", "price": 600, "type": "upgrade", "desc": "+10% Income"},
             {"name": "Shotgun", "price": 1500, "type": "weapon", "desc": "More damage"},
-            {"name": "Holy hand grenade", "price": 1000, "type": "weapon", "desc": "Holy FU*K"},
+            {"name": "Holy hand grenade", "price": 1000, "type": "consumable", "desc": "Holy FU*K"},
         ]
         self.shop_selected_index = 0
             
