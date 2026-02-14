@@ -559,6 +559,8 @@ def spustit_hru(screen):
     game_over = False
 
     while running:
+        is_busy = gui.shop_open or dialogue_active or game_data.get("dialogue_active", False)
+
         is_night = game_data.get("night_mode", False)
         handle_music(is_night)
         selected_item = gui.get_selected_item()
@@ -609,19 +611,65 @@ def spustit_hru(screen):
                 pygame.quit(); sys.exit()
             
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    menu = EscMenu(screen)
-                    vysledok = menu.run()
-                    if vysledok == "quit":
-                        return
                 
-                if event.key == pygame.K_e:
-                    if event.key == pygame.K_e:
+                # 1. ESCAPE: Zatváranie obchodu alebo otvorenie hlavného menu
+                if event.key == pygame.K_ESCAPE:
+                    if gui.shop_open:
+                        gui.shop_open = False
+                    else:
+                        menu = EscMenu(screen)
+                        vysledok = menu.run()
+                        if vysledok == "quit": return
+
+                # 2. KLÁVESA E: Interakcia (NPC, Obchod, Dialóg)
+                elif event.key == pygame.K_e:
+                    if gui.shop_open:
+                        # Logika nákupu v obchode
+                        item = gui.shop_items[gui.shop_selected_index]
+                        
+                        if player.money >= item["price"]:
+                            if item["type"] == "consumable":
+                                # Okamžitý efekt (napr. potion)
+                                player.money -= item["price"]
+                                player.health = min(100, player.health + 20)
+                                print(f"Použité: {item['name']}")
+                            else:
+                                # Trvalé predmety (meče, lopaty) idú do inventára
+                                if item["name"] not in gui.inventory:
+                                    if len(gui.inventory) < gui.max_slots:
+                                        player.money -= item["price"]
+                                        gui.inventory.append(item["name"])
+                                        print(f"Kúpené: {item['name']}")
+                                    else:
+                                        print("Inventár je plný!")
+                                else:
+                                    print("Tento predmet už máš!")
+                        else:
+                            print("Nedostatok peňazí!")
+                    
+                    else:
+                        # Ak nie je otvorený obchod, skúsime interakciu s NPC
                         npc = game_data.get("npc")
-                        if npc and player.rect.colliderect(npc.rect.inflate(40, 40)):
-                            dialogue_active = True
-                            dialogue_index = 0
-                            game_data["dialogue_active"] = True
+                        if npc and player.rect.colliderect(npc.rect.inflate(60, 60)):
+                            # Ak je to Shopkeeper, otvoríme GUI obchodu
+                            if getattr(npc, 'name', '') == "Shopkeeper":
+                                gui.shop_open = True
+                            else:
+                                # Inak spustíme klasický dialóg
+                                dialogue_active = True
+                                dialogue_index = 0
+                                game_data["dialogue_active"] = True
+
+                # 3. POHYB V OBCHODE (W/S alebo šípky)
+                elif gui.shop_open:
+                    if event.key in [pygame.K_w, pygame.K_UP]:
+                        gui.shop_selected_index = (gui.shop_selected_index - 1) % len(gui.shop_items)
+                    elif event.key in [pygame.K_s, pygame.K_DOWN]:
+                        gui.shop_selected_index = (gui.shop_selected_index + 1) % len(gui.shop_items)
+
+                # 4. VÝBER SLOTU (1-9): Delegujeme na GUI
+                # Táto funkcia v gui.py zmení selected_index (bezpečne)
+                gui.handle_input(event)
 
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
@@ -725,7 +773,7 @@ def spustit_hru(screen):
         # Zmaž zo zoznamu len tých duchov, ktorí dokončili svoju "DYING" animáciu
         game_data["enemies"] = [e for e in game_data["enemies"] if not e.is_dead]
 
-        if not dialogue_active and not game_over:
+        if (not dialogue_active and not game_over) and not is_busy:
             player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
 
         camera.update(player)
