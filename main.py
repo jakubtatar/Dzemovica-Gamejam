@@ -15,6 +15,7 @@ from item import Item
 from npc import NPC
 
 from gamedays import Monday
+from gamedays import Tuesday
 
 pygame.mixer.init()
 current_track = None
@@ -257,7 +258,8 @@ def spustit_hru(screen):
         "visible_mapchangers": True, #Developerske nastavenie
         "last_dig_time": 0,
         "dig_cooldown": 2000, # 2 sekundy pauza medzi kopaním (v milisekundách)
-        "gameday": 1
+        "gameday": 1,
+        "night_finished": False, 
     }
 
     def setup_map(map_name):
@@ -499,7 +501,19 @@ def spustit_hru(screen):
     enemies_hit_this_swing = []
 
     monday_manager = Monday(screen, player, gui, game_data)
-    monday_manager.start(setup_map)
+    tuesday_manager = Tuesday(screen, player, gui, game_data)
+
+    # Explicitne nastavíme Pondelok ako začiatok
+    current_day_manager = monday_manager
+    player.day = "Monday"
+
+    # Resetujeme dôležité flagy v game_data, aby Tuesday nezačal predčasne
+    game_data["night_mode"] = False
+    game_data["night_finished"] = False
+    game_data["gameday"] = 1 
+
+    # Spustíme štartovaciu logiku pondelka (nastavenie mapy a prvého questu)
+    current_day_manager.start(setup_map)
 
 
     # --- HERNÁ SLUČKA ---
@@ -511,7 +525,24 @@ def spustit_hru(screen):
         handle_music(is_night)
         selected_item = gui.get_selected_item()
 
-        monday_manager.update_quests()
+        if game_data["night_mode"]:
+            game_data["night_timer"] -= 1
+            if game_data["night_timer"] <= 0:
+                game_data["night_mode"] = False
+                game_data["night_finished"] = True # POVIE HRÁČOVI, ŽE PREŽIL
+                current_day_manager.day_finished = True
+
+      # 1. Updateujeme questy aktuálneho dňa
+        current_day_manager.update_quests()
+
+        # 2. Kontrola, či deň skončil
+        if current_day_manager.day_finished:
+            if player.day == "Monday" and game_data.get("night_finished"): # PRIDANÁ PODMIENKA
+                player.day = "Tuesday"
+                current_day_manager = tuesday_manager
+                current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False # Reset pre ďalšiu noc
         
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1

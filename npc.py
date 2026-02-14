@@ -8,3 +8,6 @@ class NPC:
 
     def draw(self, screen, camera):
         screen.blit(self.image, camera.apply(self.rect))
+
+    def set_dialogue(self, new_lines):
+        self.dialogue_lines = new_lines
