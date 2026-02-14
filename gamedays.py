@@ -204,11 +204,10 @@ class Tuesday:
                     npc.set_dialogue([
                         "Welcome to Zabkas Hugo!",
                     ])
-                    
                     if not is_talking and self.game_data.get("salary_received"):
                         self.player.money += 200
                         self.quest_step = 4
-                        self.update_gui_quest("New tools", "Buy something from store.")
+                        self.update_gui_quest("GO TO WORK", "Go back to the cemetery and dig more graves.")
 
         #5. KOPANIE ĎALŠÍCH HROBOV
         elif self.quest_step == 4:
@@ -239,5 +238,5 @@ class Tuesday:
                 self.quest_step = 7
                 self.update_gui_quest("Day Finished", "Thuesday is over. Rest now.")
                 self.next_day_transition()
-        
 
+   
