@@ -634,7 +634,7 @@ def spustit_hru(screen):
                     continue
 
                 if event.button == 1 and not game_over: 
-                    if selected_item == "[1] Sword":
+                    if selected_item == "Sword":
                         attack_active = True
                         attack_start_time = pygame.time.get_ticks()
                         enemies_hit_this_swing = []
@@ -661,7 +661,7 @@ def spustit_hru(screen):
                                 
                                 enemy.take_damage(15, knockback_vec)
 
-                    if selected_item == "[2] Shovel" and not game_data["night_mode"]:
+                    if selected_item == "Shovel" and not game_data["night_mode"]:
                         current_time = pygame.time.get_ticks()
                         
                         if current_time - game_data["last_dig_time"] < game_data["dig_cooldown"]:
