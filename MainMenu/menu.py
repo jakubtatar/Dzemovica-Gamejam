@@ -281,6 +281,18 @@ def run_menu():
     
     view = "menu"
 
+    # --- NAČÍTANIE A SPUSTENIE HUDBY ---
+    menu_music_path = os.path.join(parent_dir, "Resources", "Music", "Night.mp3")
+    try:
+        if os.path.exists(menu_music_path):
+            pygame.mixer.music.load(menu_music_path)
+            pygame.mixer.music.set_volume(0.5) # Podľa začiatočnej hodnoty slidera
+            pygame.mixer.music.play(-1)
+        else:
+            print(f"Hudba nenájdená: {menu_music_path}")
+    except Exception as e:
+        print(f"Chyba pri načítaní hudby: {e}")
+
     while True:
         time = pygame.time.get_ticks()
         
@@ -355,6 +367,7 @@ def run_menu():
             vol = slider.update(mx, my, m_down)
             if s_hover: s_hover.set_volume(vol)
             if s_click: s_click.set_volume(vol)
+            pygame.mixer.music.set_volume(vol) # <-- Nastavuje hlasitosť hudby
             slider.draw(canvas)
             txt = font_menu.render(f"Volume: {int(vol*100)}%", True, TEXT_COL)
             canvas.blit(txt, txt.get_rect(center=(WIDTH//2, 230)))
@@ -374,6 +387,7 @@ def run_menu():
                 if s_click: s_click.play()
                 view = "menu"
             btn_back.draw(canvas)
+
 
         elif view == "credits":
             head = font_title.render("CREDITS", True, ACCENT)
