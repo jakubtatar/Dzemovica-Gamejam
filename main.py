@@ -18,10 +18,6 @@ from GhostEnemy import GhostEnemy
 from gamedays import Monday
 from gamedays import Tuesday
 from gamedays import Wednesday
-from gamedays import Thursday
-from gamedays import Friday
-from gamedays import Saturday
-from gamedays import Sunday
 
 pygame.mixer.init()
 current_track = None
@@ -185,6 +181,11 @@ def spustit_hru(screen):
         object_bottleshelf_img = pygame.image.load(r"Resources/Objects/Object_BottleShelf.png").convert_alpha()
         object_barchair_img = pygame.image.load(r"Resources/Objects/Object_BarChair.png").convert_alpha()
         object_counter_img = pygame.image.load(r"Resources/Objects/Object_Counter.png").convert_alpha()
+        object_bartable_img = pygame.image.load(r"Resources/Objects/Object_Bartable.png").convert_alpha()
+
+        object_bed_img = pygame.image.load(r"Resources/Objects/Object_Bed.png").convert_alpha()
+        object_wardrobe_img = pygame.image.load(r"Resources/Objects/Object_Wardrobe.png").convert_alpha()   
+        object_desk_img = pygame.image.load(r"Resources/Objects/Object_Desk.png").convert_alpha()               
 
         # --- NOVÝ OBRÁZOK DUCHA ---
         ghost_img = pygame.image.load(r"Resources/NPCs/Ghost_Front1.png").convert_alpha()
@@ -237,7 +238,12 @@ def spustit_hru(screen):
 
     #nabytok
     object_bottleshelf_img = pygame.transform.scale(object_bottleshelf_img, (TILE_SIZE *4, TILE_SIZE *4))
+    object_barchair_img = pygame.transform.scale(object_barchair_img, (TILE_SIZE *1.5, TILE_SIZE *1.5))
     object_counter_img = pygame.transform.scale(object_counter_img, (TILE_SIZE *1.5, TILE_SIZE *1.5))
+    object_bartable_img = pygame.transform.scale(object_bartable_img, (TILE_SIZE *3, TILE_SIZE *3))
+    object_bed_img = pygame.transform.scale(object_bed_img, (TILE_SIZE *2, TILE_SIZE *2.5))
+    object_wardrobe_img = pygame.transform.scale(object_wardrobe_img, (TILE_SIZE *2, TILE_SIZE *3))
+    object_desk_img = pygame.transform.scale(object_desk_img, (TILE_SIZE *2, TILE_SIZE *3))
 
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
@@ -415,6 +421,7 @@ def spustit_hru(screen):
                  priest_dialog_img)
 
             game_data["npc"] = priest_npc
+            priest_npc.map_id = "village"
 
             game_data["map_objects"].append({
                 "rect": priest_npc.rect,
@@ -435,6 +442,23 @@ def spustit_hru(screen):
                 "rect": pygame.Rect(150, 550, TILE_SIZE, TILE_SIZE),
                 "target": "houseplace",
                 "spawn": (250, 500)
+            })
+            
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(200, 75, TILE_SIZE * 2, TILE_SIZE * 2.5),
+                "image": object_bed_img,
+                "collidable": True
+            })
+
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(50, 50, TILE_SIZE * 2, TILE_SIZE * 3),
+                "image": object_wardrobe_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(200, 300, TILE_SIZE * 2, TILE_SIZE * 3),
+                "image": object_desk_img,
+                "collidable": True
             })
 
         elif map_name == "taverna":
@@ -481,6 +505,36 @@ def spustit_hru(screen):
                 "image": object_counter_img,
                 "collidable": True
             })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(625, 275, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_barchair_img,
+                "collidable": False
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(550, 275, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_barchair_img,
+                "collidable": False
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(475, 275, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_barchair_img,
+                "collidable": False
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(400, 275, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_barchair_img,
+                "collidable": False
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(100, 300, TILE_SIZE * 3, TILE_SIZE * 3),
+                "image": object_bartable_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(100, 100, TILE_SIZE * 3, TILE_SIZE * 3),
+                "image": object_bartable_img,
+                "collidable": True
+            })
 
             barman_x, barman_y = 400, 150
             barman_width, barman_height = 60, 100
@@ -491,6 +545,7 @@ def spustit_hru(screen):
                             barman_dialog_img)
             barman_npc.name = "Barman"
             game_data["npc"] = barman_npc
+            barman_npc.map_id = "taverna"
 
             game_data["map_objects"].append({
                 "rect": barman_npc.rect,
@@ -521,6 +576,7 @@ def spustit_hru(screen):
                             shopkeeper_dialog_img)
             shopkeeper_npc.name = "Shopkeeper"
             game_data["npc"] = shopkeeper_npc
+            shopkeeper_npc.map_id = "store"
 
             game_data["map_objects"].append({
                 "rect": shopkeeper_npc.rect,
@@ -576,13 +632,9 @@ def spustit_hru(screen):
     monday_manager = Monday(screen, player, gui, game_data)
     tuesday_manager = Tuesday(screen, player, gui, game_data)
     wednesday_manager = Wednesday(screen, player, gui, game_data)
-    thursday_manager = Thursday(screen, player, gui, game_data)
-    friday_manager = Friday(screen, player, gui, game_data)
-    saturday_manager = Saturday(screen, player, gui, game_data)
-    sunday_manager = Sunday(screen, player, gui, game_data)
 
-    current_day_manager = tuesday_manager
-    player.day = "Tuesday"
+    current_day_manager = monday_manager
+    player.day = "Monday"
 
     game_data["night_mode"] = False
     game_data["night_finished"] = False
@@ -616,36 +668,15 @@ def spustit_hru(screen):
                 player.day = "Tuesday"
                 current_day_manager = tuesday_manager
                 current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False
 
             elif player.day == "Tuesday" and game_data.get("night_finished"):
                 player.day = "Wednesday"
                 current_day_manager = wednesday_manager
                 current_day_manager.start(setup_map)
-
-            elif player.day == "Wednesday" and game_data.get("night_finished"):
-                player.day = "Thursday"
-                current_day_manager = wednesday_manager
-                current_day_manager.start(setup_map)
-
-            elif player.day == "Thursday" and game_data.get("night_finished"):
-                player.day = "Friday"
-                current_day_manager = wednesday_manager
-                current_day_manager.start(setup_map)
-
-            elif player.day == "Friday" and game_data.get("night_finished"):
-                player.day = "Saturday"
-                current_day_manager = wednesday_manager
-                current_day_manager.start(setup_map)
-
-            elif player.day == "Saturday" and game_data.get("night_finished"):
-                player.day = "Sunday"
-                current_day_manager = wednesday_manager
-                current_day_manager.start(setup_map)
-
-        # Resetujeme stavy pre nový deň
-        game_data["night_mode"] = False
-        game_data["night_finished"] = False
-        current_day_manager.day_finished = False
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False
         
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1
@@ -902,11 +933,13 @@ def spustit_hru(screen):
 
         # --- NPC INTERACT TEXT ---
         npc = game_data.get("npc")
-        if npc and player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
-            interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
-            interact_text = interact_font.render("Press E", True, (255, 255, 0))
-            text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
-            screen.blit(interact_text, camera.apply(text_rect))
+        c_map = game_data.get("current_map")
+        if npc and getattr(npc, 'map_id', None) == c_map:
+                    if player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
+                        interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
+                        interact_text = interact_font.render("Press E", True, (255, 255, 0))
+                        text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
+                        screen.blit(interact_text, camera.apply(text_rect))
 
         if dialogue_active:
             npc = game_data.get("npc")

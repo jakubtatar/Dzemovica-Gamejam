@@ -5,6 +5,7 @@ class NPC:
         self.rect = pygame.Rect(x, y, width, height)
         self.dialogue_lines = dialogue_lines
         self.portrait = portrait_img  # Tu si uložíme ten veľký obrázok pre dialóg
+        self.map_id = None
 
     def draw(self, screen, camera):
         screen.blit(self.image, camera.apply(self.rect))
