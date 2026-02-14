@@ -75,8 +75,8 @@ def handle_music(is_night):
     if is_night:
             target_track = os.path.join("Resources", "Music", "Night.mp3")
     else:
-            target_track = None # Alebo cesta k dennej hudbe
-
+            target_track = os.path.join("Resources", "Music", "Day.mp3")
+            
     if current_track != target_track:
             try:
                 if target_track:
@@ -85,7 +85,10 @@ def handle_music(is_night):
                         pygame.mixer.music.fadeout(1000)
                         pygame.mixer.music.load(target_track)
                         pygame.mixer.music.play(-1)
-                        pygame.mixer.music.set_volume(0.4)
+                        if target_track == os.path.join("Resources", "Music", "Day.mp3"):
+                            pygame.mixer.music.set_volume(0.2)
+                        else:
+                            pygame.mixer.music.set_volume(0.8)
                         current_track = target_track
                         print(f"Hrá hudba: {target_track}")
                     else:
