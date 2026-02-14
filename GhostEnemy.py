@@ -2,15 +2,18 @@ import pygame
 import random
 import math
 
+# ==========================================
+# 1. GHOST ENEMY (Duch)
+# ==========================================
 class GhostEnemy:
     def __init__(self, x, y, image):
         self.original_image = image.copy()
+        self.image = image.copy()  
         
-        # Optimalizácia pre Bloom (Žiaru)
         self.mask_image = image.copy()
         self.mask_image.fill((255, 255, 255, 255), special_flags=pygame.BLEND_RGBA_MULT)
 
-        self.rect = self.original_image.get_rect(center=(x, y))
+        self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.math.Vector2(self.rect.centerx, self.rect.centery + 40)
         
         self.max_health = 60 
@@ -43,24 +46,18 @@ class GhostEnemy:
         self.look_dir = pygame.math.Vector2(0, 0)
 
     def get_current_color(self, current_time):
-        """Dynamické pulzovanie farieb (Dýchanie svetla)"""
-        pulse = (math.sin(current_time * 0.003 + self.ethereal_offset) + 1) / 2 # 0.0 až 1.0
+        pulse = (math.sin(current_time * 0.003 + self.ethereal_offset) + 1) / 2
         if self.is_enraged:
-            # Pulzuje medzi krvavo červenou a žiarivou oranžovou
             return (255, int(50 + pulse * 100), 0)
         else:
-            # Pulzuje medzi hlbokou tyrkysovou a jasnou azúrovou
             return (0, int(150 + pulse * 105), 255)
 
     def spawn_particles(self, amount, color, speed_mult=1.0, size_mult=1.0, is_ember=False):
         for _ in range(amount):
             px = self.pos.x + random.uniform(-15, 15)
             py = self.pos.y + random.uniform(-10, 30)
-            
-            # Ak je to "ember" (iskra), lieta vždy hore
             vx = random.uniform(-1.0, 1.0) * speed_mult
             vy = random.uniform(-3.0, -0.5) * speed_mult if is_ember else random.uniform(-2.0, 1.0) * speed_mult
-            
             size = random.uniform(2, 5) * size_mult
             life = random.randint(25, 55)
             start_alpha = random.randint(150, 255)
@@ -101,7 +98,7 @@ class GhostEnemy:
         separation_vec = pygame.math.Vector2(0, 0)
         count = 0
         for other in enemies:
-            if other is not self and not other.is_dead:
+            if other is not self and not getattr(other, 'is_dead', False):
                 dist = self.pos.distance_to(other.pos)
                 if 0 < dist < 60: 
                     diff = self.pos - other.pos
@@ -117,7 +114,6 @@ class GhostEnemy:
         if len(self.history) > 10: 
             self.history.pop()
 
-        # Update častíc s vlnením (ako oheň/magická hmla)
         for p in self.particles[:]:
             p[0] += p[2] + math.sin(current_time * 0.01 + p[5]) * 0.5 
             p[1] += p[3]
@@ -126,7 +122,6 @@ class GhostEnemy:
             if p[6] <= 0 or p[4] <= 0:
                 self.particles.remove(p)
 
-        # Ambientné stúpanie ektoplazmy
         if self.state not in ["DYING", "TELEPORT_OUT", "TELEPORT_IN"] and random.random() < 0.35:
             self.spawn_particles(1, self.get_current_color(current_time), speed_mult=0.6, size_mult=0.8, is_ember=True)
 
@@ -135,7 +130,6 @@ class GhostEnemy:
 
         target = pygame.math.Vector2(player.rect.center)
         if target.distance_to(self.pos) > 0:
-            # Pomalšie otáčanie očí (plynulejší pohľad)
             desired_dir = (target - self.pos).normalize()
             self.look_dir = self.look_dir.lerp(desired_dir, 0.1)
 
@@ -232,7 +226,6 @@ class GhostEnemy:
 
         current_color = self.get_current_color(current_time)
         
-        # 1. Spektrálny chvost s hladkým fade-outom
         if self.state not in ["TELEPORT_OUT", "TELEPORT_IN", "SPAWNING"] and len(self.history) > 1:
             for i, (hx, hy) in enumerate(self.history):
                 trail_alpha = max(0, 100 - (i * 10))
@@ -250,7 +243,6 @@ class GhostEnemy:
                         t_pos = camera.apply(trail_img.get_rect(center=(hx, hy))).move(0, bob * scale_factor)
                         screen.blit(trail_img, t_pos, special_flags=pygame.BLEND_RGBA_ADD)
 
-        # 2. Príprava hlavného spritu
         draw_image = self.original_image.copy()
         glow_image = self.mask_image.copy()
         glow_image.fill((*current_color, 0), special_flags=pygame.BLEND_RGBA_MULT)
@@ -268,11 +260,9 @@ class GhostEnemy:
 
             draw_pos = camera.apply(draw_image.get_rect(center=self.rect.center)).move(self.shake_offset.x, bob + self.shake_offset.y)
 
-            # 3. Kreslenie s BLOOM efektom (3 vrstvy pre extrémne peknú žiaru)
-            screen.blit(draw_image, draw_pos) # Základ
-            screen.blit(glow_image, draw_pos, special_flags=pygame.BLEND_RGBA_ADD) # Vnútorná žiara
+            screen.blit(draw_image, draw_pos) 
+            screen.blit(glow_image, draw_pos, special_flags=pygame.BLEND_RGBA_ADD) 
             
-            # Vonkajší Bloom (Zväčšená a rozmazaná žiara)
             bloom_scale = 1.25 + (math.sin(current_time * 0.006) * 0.05)
             bw, bh = int(w * bloom_scale), int(h * bloom_scale)
             if bw > 0 and bh > 0:
@@ -281,27 +271,23 @@ class GhostEnemy:
                 bloom_pos = camera.apply(bloom_img.get_rect(center=self.rect.center)).move(self.shake_offset.x, bob + self.shake_offset.y)
                 screen.blit(bloom_img, bloom_pos, special_flags=pygame.BLEND_RGBA_ADD)
 
-            # 4. Detailné Žiariace Oči s odleskom
             if self.state not in ["DYING", "TELEPORT_OUT", "TELEPORT_IN", "SPAWNING"]:
-                eye_color = (255, 255, 255) # Jadro oka je vždy biele
-                eye_glow = current_color # Žiara oka je podľa fázy
+                eye_color = (255, 255, 255) 
+                eye_glow = current_color 
                 
                 eye_offset_x = self.look_dir.x * 6 * wobble_x
                 eye_offset_y = (self.look_dir.y * 4 - 10) * wobble_y
                 
                 eye_surf = pygame.Surface((20, 12), pygame.SRCALPHA)
                 
-                # Vonkajší glow očí
                 pygame.draw.circle(eye_surf, (*eye_glow, 150), (6, 6), 5)
                 pygame.draw.circle(eye_surf, (*eye_glow, 150), (14, 6), 5)
-                # Vnútorné jasné jadro
                 pygame.draw.circle(eye_surf, eye_color, (6, 6), 2)
                 pygame.draw.circle(eye_surf, eye_color, (14, 6), 2)
                 
                 eye_pos_final = (draw_pos.centerx - 10 + eye_offset_x, draw_pos.centery - 4 + eye_offset_y)
                 screen.blit(eye_surf, eye_pos_final, special_flags=pygame.BLEND_RGBA_ADD)
 
-        # 5. Častice (Magický oheň)
         for p in self.particles:
             screen_pos = camera.apply(pygame.Rect(p[0], p[1], 1, 1))
             current_alpha = int((p[6] / p[5]) * p[8])
@@ -311,14 +297,12 @@ class GhostEnemy:
                 surf = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
                 center = surf_size // 2
                 
-                # Hladký prechod častice
                 pygame.draw.circle(surf, (*p[7], int(current_alpha * 0.3)), (center, center), int(p[4]*1.5))
                 pygame.draw.circle(surf, (*p[7], current_alpha), (center, center), int(p[4]))
                 pygame.draw.circle(surf, (255, 255, 255, int(current_alpha * 0.8)), (center, center), int(p[4]*0.4))
                 
                 screen.blit(surf, (screen_pos.x - center, screen_pos.y - center), special_flags=pygame.BLEND_RGBA_ADD)
         
-        # 6. Profesionálny minimalistický Healthbar
         if self.health < self.max_health and self.state not in ["DYING", "SPAWNING", "TELEPORT_OUT", "TELEPORT_IN"]:
             bar_w, bar_h = 36, 4
             ratio = max(0, self.health / self.max_health)
@@ -331,6 +315,203 @@ class GhostEnemy:
     def spawn_horde(cls, player, game_data, ghost_img, count=5):
         if game_data["current_map"] == "cmitermap":
             for _ in range(count):
-                dist_x = random.randint(400, 800) * random.choice([-1, 1])
-                dist_y = random.randint(400, 800) * random.choice([-1, 1])
-                game_data["enemies"].append(cls(player.rect.x + dist_x, player.rect.y + dist_y, ghost_img))
+                dist_x = random.randint(200, 400) * random.choice([-1, 1])
+                dist_y = random.randint(200, 400) * random.choice([-1, 1])
+                spawn_x = player.rect.x + dist_x
+                spawn_y = player.rect.y + dist_y
+                
+                enemy_type = random.choice(["ghost", "ghost", "archer", "ghoul"])
+                if enemy_type == "ghost":
+                    game_data["enemies"].append(cls(spawn_x, spawn_y, ghost_img))
+                elif enemy_type == "archer":
+                    game_data["enemies"].append(SkeletonArcher(spawn_x, spawn_y, ghost_img))
+                elif enemy_type == "ghoul":
+                    game_data["enemies"].append(GhoulTank(spawn_x, spawn_y, ghost_img))
+
+# ==========================================
+# 2. ARROW (Šíp pre Kostlivca)
+# ==========================================
+class Arrow:
+    def __init__(self, x, y, target_pos, damage=15):
+        self.pos = pygame.math.Vector2(x, y)
+        self.rect = pygame.Rect(x, y, 8, 8)
+        
+        direction = target_pos - self.pos
+        if direction.length() > 0:
+            self.vel = direction.normalize() * 9 
+        else:
+            self.vel = pygame.math.Vector2(0, 0)
+            
+        self.damage = damage
+        self.lifetime = 120 
+        
+    def update(self):
+        self.pos += self.vel
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+        self.lifetime -= 1
+
+    def draw(self, screen, camera):
+        screen_pos = camera.apply(self.rect).center
+        end_pos = (screen_pos[0] - self.vel.x * 2.5, screen_pos[1] - self.vel.y * 2.5)
+        pygame.draw.line(screen, (255, 100, 0), screen_pos, end_pos, 4)
+        pygame.draw.circle(screen, (255, 255, 255), screen_pos, 3)
+
+# ==========================================
+# 3. SKELETON ARCHER (Ostreľovač na diaľku)
+# ==========================================
+class SkeletonArcher:
+    def __init__(self, x, y, image):
+        self.original_image = image.copy()
+        self.image = image.copy()
+        self.rect = self.image.get_rect(center=(x, y))
+        self.pos = pygame.math.Vector2(self.rect.center)
+        
+        self.max_health = 40 
+        self.health = self.max_health
+        self.speed = 2.5
+        self.damage = 15
+        
+        self.state = "KITING" 
+        self.attack_cooldown = random.randint(60, 120)
+        self.aim_timer = 0
+        self.target_aim_pos = None
+        self.is_dead = False
+        self.knockback = pygame.math.Vector2(0, 0)
+
+    def take_damage(self, amount, knockback_force):
+        self.health -= amount
+        self.knockback = knockback_force
+        if self.state == "AIMING":
+            self.state = "KITING" 
+        if self.health <= 0:
+            self.is_dead = True
+
+    def update(self, player, game_data):
+        if self.attack_cooldown > 0 and self.state == "KITING":
+            self.attack_cooldown -= 1
+
+        target = pygame.math.Vector2(player.rect.center)
+        dist_to_player = self.pos.distance_to(target)
+        move_vec = pygame.math.Vector2(0, 0)
+
+        if self.state == "KITING":
+            if dist_to_player < 140: # OPRAVA VZDIALENOSTI
+                move_vec = (self.pos - target).normalize() * self.speed
+            elif dist_to_player > 300: # OPRAVA VZDIALENOSTI
+                move_vec = (target - self.pos).normalize() * self.speed
+            else:
+                if self.attack_cooldown <= 0:
+                    self.state = "AIMING"
+                    self.aim_timer = 40 
+
+        elif self.state == "AIMING":
+            self.target_aim_pos = target 
+            self.aim_timer -= 1
+            if self.aim_timer <= 0:
+                new_arrow = Arrow(self.pos.x, self.pos.y, target, self.damage)
+                if "arrows" not in game_data: game_data["arrows"] = []
+                game_data["arrows"].append(new_arrow)
+                
+                self.state = "KITING"
+                self.attack_cooldown = random.randint(120, 180)
+
+        self.pos += move_vec + self.knockback
+        self.knockback *= 0.8
+        if self.knockback.length() < 0.5: self.knockback = pygame.math.Vector2(0, 0)
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+
+    def draw(self, screen, camera):
+        draw_pos = camera.apply(self.rect)
+        screen.blit(self.image, draw_pos)
+
+        if self.state == "AIMING" and self.target_aim_pos:
+            start_pos = draw_pos.center
+            end_pos = camera.apply(pygame.Rect(self.target_aim_pos.x, self.target_aim_pos.y, 1, 1)).center
+            
+            laser_surf = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+            pulse = abs(math.sin(pygame.time.get_ticks() * 0.02)) * 150
+            pygame.draw.line(laser_surf, (255, 0, 0, int(50 + pulse)), start_pos, end_pos, 2)
+            screen.blit(laser_surf, (0, 0))
+            
+        if self.health < self.max_health:
+            bar_w = 40
+            ratio = max(0, self.health / self.max_health)
+            bx, by = draw_pos.centerx - bar_w // 2, draw_pos.y - 15
+            pygame.draw.rect(screen, (0, 0, 0), (bx-1, by-1, bar_w+2, 6))
+            pygame.draw.rect(screen, (0, 200, 0), (bx, by, bar_w * ratio, 4))
+
+# ==========================================
+# 4. GHOUL TANK (Ťažký útočník na blízko)
+# ==========================================
+class GhoulTank:
+    def __init__(self, x, y, image):
+        self.original_image = image.copy()
+        
+        w, h = self.original_image.get_size()
+        self.image = pygame.transform.scale(self.original_image, (int(w*1.4), int(h*1.4)))
+        self.rect = self.image.get_rect(center=(x, y))
+        self.pos = pygame.math.Vector2(self.rect.center)
+        
+        self.max_health = 180 
+        self.health = self.max_health
+        self.speed = 1.0 
+        self.damage = 25 
+        
+        self.state = "CHASING"
+        self.smash_timer = 0
+        self.is_dead = False
+        self.knockback = pygame.math.Vector2(0, 0)
+
+    def take_damage(self, amount, knockback_force):
+        self.health -= amount
+        self.knockback = knockback_force * 0.1 
+        if self.health <= 0:
+            self.is_dead = True
+
+    def update(self, player, game_data):
+        target = pygame.math.Vector2(player.rect.center)
+        dist_to_player = self.pos.distance_to(target)
+        move_vec = pygame.math.Vector2(0, 0)
+
+        if self.state == "CHASING":
+            if dist_to_player > 0:
+                move_vec = (target - self.pos).normalize() * self.speed
+            
+            if dist_to_player < 70:
+                self.state = "SMASH_WINDUP"
+                self.smash_timer = 50 
+
+        elif self.state == "SMASH_WINDUP":
+            self.smash_timer -= 1
+            if self.smash_timer <= 0:
+                if dist_to_player < 90:
+                    if not hasattr(player, 'last_damage_time'): player.last_damage_time = 0
+                    current_time = pygame.time.get_ticks()
+                    if current_time - player.last_damage_time >= 500:
+                        player.health -= self.damage
+                        player.last_damage_time = current_time
+                self.state = "CHASING"
+
+        self.pos += move_vec + self.knockback
+        self.knockback *= 0.85
+        if self.knockback.length() < 0.5: self.knockback = pygame.math.Vector2(0, 0)
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+
+    def draw(self, screen, camera):
+        draw_pos = camera.apply(self.rect)
+        
+        if self.state == "SMASH_WINDUP":
+            shake = random.randint(-4, 4)
+            draw_pos = draw_pos.move(shake, shake)
+            tinted_img = self.image.copy()
+            tinted_img.fill((150, 0, 0, 100), special_flags=pygame.BLEND_RGBA_ADD)
+            screen.blit(tinted_img, draw_pos)
+        else:
+            screen.blit(self.image, draw_pos)
+            
+        if self.health < self.max_health:
+            bar_w = 50
+            ratio = max(0, self.health / self.max_health)
+            bx, by = draw_pos.centerx - bar_w // 2, draw_pos.y - 15
+            pygame.draw.rect(screen, (0, 0, 0), (bx-1, by-1, bar_w+2, 6))
+            pygame.draw.rect(screen, (200, 0, 0), (bx, by, bar_w * ratio, 4))

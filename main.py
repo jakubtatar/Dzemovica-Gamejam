@@ -13,7 +13,7 @@ from dialogue import Dialogue
 from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
-from GhostEnemy import GhostEnemy
+from GhostEnemy import GhostEnemy, SkeletonArcher, GhoulTank
 
 from gamedays import Monday
 from gamedays import Tuesday
@@ -277,6 +277,7 @@ def spustit_hru(screen):
         "graves": [],       
         "grave_pits": [],
         "enemies": [], 
+        "arrows": [],
         "persistent_graves": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "persistent_pits": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "map_switch_cooldown": 0,
@@ -853,9 +854,28 @@ def spustit_hru(screen):
                     print("HP:", player.health)
                     if player.health <= 0:
                         game_over = True
+
         
         # Zmaž zo zoznamu len tých duchov, ktorí dokončili svoju "DYING" animáciu
         game_data["enemies"] = [e for e in game_data["enemies"] if not e.is_dead]
+
+       # --- UPDATE ŠÍPOV ---
+        for arrow in game_data.get("arrows", [])[:]:
+            arrow.update()
+            
+            # Ak trafí hráča
+            if arrow.rect.colliderect(player.rect):
+                current_time = pygame.time.get_ticks()
+                if not hasattr(player, 'last_damage_time'): player.last_damage_time = 0
+                if current_time - player.last_damage_time >= 500:
+                    player.health -= arrow.damage
+                    player.last_damage_time = current_time
+                    if player.health <= 0: game_over = True
+                game_data["arrows"].remove(arrow)
+            
+            # Ak vyprší čas a netrafí
+            elif arrow.lifetime <= 0:
+                game_data["arrows"].remove(arrow)
 
         if (not dialogue_active and not game_over) and not is_busy:
             player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
@@ -917,6 +937,9 @@ def spustit_hru(screen):
             
             elif item["type"] == "enemy":
                 item["obj"].draw(screen, camera)
+
+            for arrow in game_data.get("arrows", []):
+                arrow.draw(screen, camera)
 
 
         # --- NPC INTERACT TEXT ---
@@ -999,8 +1022,23 @@ def spustit_hru(screen):
 
             game_data["night_timer"] -= 1
 
+            # --- NIGHT MODE SPAWN KAŽDÉ 2 SEKUNDY ---
             if game_data["night_timer"] % 120 == 0:
-                GhostEnemy.spawn_horde(player, game_data, ghost_img, count=1)
+                dist_x = random.randint(400, 800) * random.choice([-1, 1])
+                dist_y = random.randint(400, 800) * random.choice([-1, 1])
+                
+                spawn_x = player.rect.x + dist_x
+                spawn_y = player.rect.y + dist_y
+
+                # Vyberieme náhodný typ - Ghost padá častejšie
+                enemy_type = random.choice(["ghost", "ghost", "archer", "ghoul"])
+                
+                if enemy_type == "ghost":
+                    game_data["enemies"].append(GhostEnemy(spawn_x, spawn_y, ghost_img))
+                elif enemy_type == "archer":
+                    game_data["enemies"].append(SkeletonArcher(spawn_x, spawn_y, ghost_img)) # Neskôr nahraď archer obrázkom
+                elif enemy_type == "ghoul":
+                    game_data["enemies"].append(GhoulTank(spawn_x, spawn_y, ghost_img)) # Neskôr nahraď ghoul obrázkom
 
             if game_data["night_text_timer"] > 0:
                 night_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 70)
