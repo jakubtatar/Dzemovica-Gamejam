@@ -708,7 +708,7 @@ def spustit_hru(screen):
 
         # --- UPDATE NEPRIATEĽOV ---
         for enemy in game_data["enemies"]:
-            enemy.update(player)
+            enemy.update(player, game_data) 
             
             # Útok ducha na hráča
             if player.rect.colliderect(enemy.rect) and enemy.state == "CHASING":
@@ -866,7 +866,10 @@ def spustit_hru(screen):
             screen.blit(overlay, (0, 0))
 
             game_data["night_timer"] -= 1
-            
+
+            if game_data["night_timer"] % 120 == 0:
+                GhostEnemy.spawn_horde(player, game_data, ghost_img, count=1)
+
             if game_data["night_text_timer"] > 0:
                 night_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 70)
                 night_text = night_font.render("THE NIGHT HAS COME", True, (255, 255, 255))
