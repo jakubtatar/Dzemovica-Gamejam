@@ -13,6 +13,7 @@ from dialogue import Dialogue
 from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
+from GhostEnemy import GhostEnemy
 
 from gamedays import Monday
 from gamedays import Tuesday
@@ -46,12 +47,15 @@ except ImportError:
             self.money = 0
             self.day = "Monday"
             self.color = color
+            self.health = 100
+            self.last_damage_time = 0
+            self.direction = "down"
         def handle_keys_with_collision(self, w, h, walls):
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_w]: self.rect.y -= 5
-            if keys[pygame.K_s]: self.rect.y += 5
-            if keys[pygame.K_a]: self.rect.x -= 5
-            if keys[pygame.K_d]: self.rect.x += 5
+            if keys[pygame.K_w]: self.rect.y -= 5; self.direction = "up"
+            if keys[pygame.K_s]: self.rect.y += 5; self.direction = "down"
+            if keys[pygame.K_a]: self.rect.x -= 5; self.direction = "left"
+            if keys[pygame.K_d]: self.rect.x += 5; self.direction = "right"
         def draw(self, screen, camera):
             screen.blit(self.image, camera.apply(self.rect))
 
@@ -66,12 +70,12 @@ def rotate_surface(surface, angle, pivot, offset):
     rotated_image = pygame.transform.rotate(surface, angle)
     rotated_rect = rotated_image.get_rect(center=pivot + offset)
     return rotated_image, rotated_rect
-
+# ==========================================
+             #Sound management
+# ==========================================
 def handle_music(is_night):
     global current_track
         
-        # OPRAVA: Cesta musí byť relatívna (bez úvodného lomítka) 
-        # a zjednoť si priečinky (Music vs Audio)
     if is_night:
             target_track = os.path.join("Resources", "Music", "Night.mp3")
     else:
@@ -80,7 +84,6 @@ def handle_music(is_night):
     if current_track != target_track:
             try:
                 if target_track:
-                    # Skontrolujeme, či súbor vôbec existuje, než ho načítame
                     if os.path.exists(target_track):
                         pygame.mixer.music.fadeout(1000)
                         pygame.mixer.music.load(target_track)
@@ -93,7 +96,6 @@ def handle_music(is_night):
                         print(f"Hrá hudba: {target_track}")
                     else:
                         print(f"CHYBA: Súbor nenájdený na ceste: {os.path.abspath(target_track)}")
-                        # Nastavíme current_track na target_track, aby to nekričalo v každom frame
                         current_track = target_track 
                 else:
                     pygame.mixer.music.fadeout(1000)
@@ -258,7 +260,7 @@ def spustit_hru(screen):
         "current_map": "",
         "graves": [],       
         "grave_pits": [],
-        "enemies": [], # Zoznam pre duchov (ukladáme slovníky: {"rect": Rect, "image": Surface})
+        "enemies": [], 
         "persistent_graves": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "persistent_pits": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "map_switch_cooldown": 0,
@@ -399,7 +401,7 @@ def spustit_hru(screen):
             priest_npc = NPC(priest_x, priest_y, priest_width, priest_height, 
                  "Resources/NPCs/Priest_Front1.png", 
                  ["My son...", "Darkness is spreading.", "God be with you."],
-                 priest_dialog_img) # <--- Posielame portrét kňaza
+                 priest_dialog_img)
 
             game_data["npc"] = priest_npc
 
@@ -472,12 +474,11 @@ def spustit_hru(screen):
             barman_x, barman_y = 400, 150
             barman_width, barman_height = 60, 100
 
-            # V setup_map pod map_name == "taverna"
             barman_npc = NPC(barman_x, barman_y, barman_width, barman_height, 
                             "Resources/NPCs/Barman_Front1.png", 
                             ["Wanna something healthy to drink?"],
                             barman_dialog_img)
-            barman_npc.name = "Barman" # Pridané meno pre questy
+            barman_npc.name = "Barman"
             game_data["npc"] = barman_npc
 
             game_data["map_objects"].append({
@@ -502,22 +503,20 @@ def spustit_hru(screen):
             shopkeeper_x, shopkeeper_y = 400, 150
             shopkeeper_width, shopkeeper_height = 60, 100
 
-            # V setup_map pod map_name == "taverna"
             shopkeeper_npc = NPC(shopkeeper_x, shopkeeper_y, shopkeeper_width, shopkeeper_height, 
                             "Resources/NPCs/Shopkeeper_Front1.png", 
                             ["Hello! Welcome to Zabkas!"],
                             shopkeeper_dialog_img)
-            shopkeeper_npc.name = "Shopkeeper" # Pridané meno pre questy
+            shopkeeper_npc.name = "Shopkeeper"
             game_data["npc"] = shopkeeper_npc
 
             game_data["map_objects"].append({
                 "rect": shopkeeper_npc.rect,
                 "image": shopkeeper__img,
                 "collidable": False,
-                "npc_ref": shopkeeper_npc,
+                "npc_ref": shopkeeper__img
             })
         
-
 
         # Objekty do kolízií (len kolidovateľné)
         for obj in game_data["map_objects"]:
@@ -534,7 +533,7 @@ def spustit_hru(screen):
 
     attack_active = False
     attack_start_time = 0
-    attack_duration = 150  # čas swingu v ms
+    attack_duration = 150
     sword_length = 70
     sword_width = 10
     sword_surf = pygame.Surface((sword_length, sword_width), pygame.SRCALPHA)
@@ -545,16 +544,13 @@ def spustit_hru(screen):
     monday_manager = Monday(screen, player, gui, game_data)
     tuesday_manager = Tuesday(screen, player, gui, game_data)
 
-    # Explicitne nastavíme Pondelok ako začiatok
     current_day_manager = monday_manager
     player.day = "Monday"
 
-    # Resetujeme dôležité flagy v game_data, aby Tuesday nezačal predčasne
     game_data["night_mode"] = False
     game_data["night_finished"] = False
     game_data["gameday"] = 1 
 
-    # Spustíme štartovaciu logiku pondelka (nastavenie mapy a prvého questu)
     current_day_manager.start(setup_map)
 
 
@@ -563,9 +559,7 @@ def spustit_hru(screen):
     game_over = False
 
     while running:
-        is_busy = gui.shop_open or dialogue_active or game_data.get("dialogue_active", False)
-
-        is_night = game_data.get("night_mode", False) # Získaj stav noci
+        is_night = game_data.get("night_mode", False)
         handle_music(is_night)
         selected_item = gui.get_selected_item()
 
@@ -573,20 +567,18 @@ def spustit_hru(screen):
             game_data["night_timer"] -= 1
             if game_data["night_timer"] <= 0:
                 game_data["night_mode"] = False
-                game_data["night_finished"] = True # POVIE HRÁČOVI, ŽE PREŽIL
+                game_data["night_finished"] = True
                 current_day_manager.day_finished = True
 
-      # 1. Updateujeme questy aktuálneho dňa
         current_day_manager.update_quests()
 
-        # 2. Kontrola, či deň skončil
         if current_day_manager.day_finished:
-            if player.day == "Monday" and game_data.get("night_finished"): # PRIDANÁ PODMIENKA
+            if player.day == "Monday" and game_data.get("night_finished"):
                 player.day = "Tuesday"
                 current_day_manager = tuesday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
-                game_data["night_finished"] = False # Reset pre ďalšiu noc
+                game_data["night_finished"] = False
         
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1
@@ -615,61 +607,21 @@ def spustit_hru(screen):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
-                
+            
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_1: gui.selected_index = 0
-                if event.key == pygame.K_2: gui.selected_index = 1
-                if event.key == pygame.K_3: gui.selected_index = 2
-                if event.key == pygame.K_4: gui.selected_index = 3
-                if event.key == pygame.K_5: gui.selected_index = 4
-                if event.key == pygame.K_6: gui.selected_index = 5
-                if event.key == pygame.K_7: gui.selected_index = 6
-                if event.key == pygame.K_8: gui.selected_index = 7
-                if event.key == pygame.K_9: gui.selected_index = 8
-                if event.key == pygame.K_0: gui.selected_index = 9
-
                 if event.key == pygame.K_ESCAPE:
-                    if gui.shop_open:
-                        gui.shop_open = False
-                    else:
-                        menu = EscMenu(screen)
-                        vysledok = menu.run()
-                        if vysledok == "quit": return
-
+                    menu = EscMenu(screen)
+                    vysledok = menu.run()
+                    if vysledok == "quit":
+                        return
+                
                 if event.key == pygame.K_e:
-                    # 1. Dialóg s NPC
-                    npc = game_data.get("npc")
-                    if npc and player.rect.colliderect(npc.rect.inflate(40, 40)):
-                        # Ak je to obchodník, otvor obchod, inak spusti dialóg
-                        if getattr(npc, 'name', '') == "Shopkeeper":
-                            gui.shop_open = True
-                        else:
+                    if event.key == pygame.K_e:
+                        npc = game_data.get("npc")
+                        if npc and player.rect.colliderect(npc.rect.inflate(40, 40)):
                             dialogue_active = True
                             dialogue_index = 0
                             game_data["dialogue_active"] = True
-
-                    # 2. Nákup v obchode (ak je otvorený)
-                    # Vnútri event loopu pri stlačení klávesy E v obchode
-                    if gui.shop_open:
-                        item = gui.shop_items[gui.shop_selected_index]
-                        if player.money >= item["price"]:
-                            player.money -= item["price"]
-                            
-                            # Pridanie do inventára (malo by to byť pole stringov alebo objektov)
-                            if item["name"] not in gui.inventory:
-                                gui.inventory.append(item["name"])
-                                print(f"Kúpené: {item['name']}")
-                            else:
-                                print("Tento predmet už máš!")
-                        else:
-                            print("Nedostatok peňazí!")
-
-                # Ovládanie menu obchodu
-                if gui.shop_open:
-                    if event.key in [pygame.K_w, pygame.K_UP]:
-                        gui.shop_selected_index = (gui.shop_selected_index - 1) % len(gui.shop_items)
-                    if event.key in [pygame.K_s, pygame.K_DOWN]:
-                        gui.shop_selected_index = (gui.shop_selected_index + 1) % len(gui.shop_items)
 
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
@@ -678,13 +630,14 @@ def spustit_hru(screen):
                     npc = game_data.get("npc")
                     if dialogue_index >= len(npc.dialogue_lines):
                         dialogue_active = False
-                        game_data["dialogue_active"] = False # Pridaj toto!
+                        game_data["dialogue_active"] = False
                     continue
 
                 if event.button == 1 and not game_over: 
-                    if selected_item == "Sword":  # uprav podľa názvu v GUI
+                    if selected_item == "[1] Sword":
                         attack_active = True
                         attack_start_time = pygame.time.get_ticks()
+                        enemies_hit_this_swing = []
 
                         attack_size = 100
 
@@ -699,46 +652,28 @@ def spustit_hru(screen):
 
                         # DAMAGE CHECK
                         for enemy in game_data["enemies"]:
-                            enemy["rect"].x += enemy["knockback_x"]
-                            enemy["rect"].y += enemy["knockback_y"]
+                            if attack_rect.colliderect(enemy.rect):
+                                knockback_vec = pygame.math.Vector2(enemy.rect.center) - pygame.math.Vector2(player.rect.center)
+                                if knockback_vec.length() > 0:
+                                    knockback_vec = knockback_vec.normalize() * 15
+                                else:
+                                    knockback_vec = pygame.math.Vector2(0, 0)
+                                
+                                enemy.take_damage(15, knockback_vec)
 
-                            enemy["knockback_x"] *= 0.85
-                            enemy["knockback_y"] *= 0.85
-                            if attack_rect.colliderect(enemy["rect"]):
-
-                                enemy["health"] -= 15
-
-                                # --- KNOCKBACK ---
-                                dx = enemy["rect"].centerx - player.rect.centerx
-                                dy = enemy["rect"].centery - player.rect.centery
-                                length = math.hypot(dx, dy)
-
-                                if length != 0:
-                                    dx /= length
-                                    dy /= length
-
-                                knockback_strength = 15
-                                enemy["knockback_x"] = dx * knockback_strength
-                                enemy["knockback_y"] = dy * knockback_strength
-                    if selected_item == "Shovel" and not game_data["night_mode"]:
+                    if selected_item == "[2] Shovel" and not game_data["night_mode"]:
                         current_time = pygame.time.get_ticks()
                         
-                        # 1. Kontrola cooldownu
                         if current_time - game_data["last_dig_time"] < game_data["dig_cooldown"]:
                             print("Ešte si unavený...")
                         elif game_data["current_map"] == "cmitermap":
-                            
-                            # Spustenie minihry
                             chosen_minigame = random.choice([GraveDigMinigame, TimingDigMinigame, SequenceDigMinigame])
                             minigame = chosen_minigame(screen)
                             reward = minigame.run() 
 
                             pygame.event.clear() 
-                            
-                            # Nastavíme cooldown hneď po skončení (úspešnom aj neúspešnom)
                             game_data["last_dig_time"] = pygame.time.get_ticks()
 
-                            # 2. Vyhodnotenie výsledku
                             if reward > 0:
                                 if not hasattr(player, 'money'): player.money = 0
                                 player.money += reward
@@ -759,55 +694,38 @@ def spustit_hru(screen):
 
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
                 elif (event.button == 3 and not game_over) and game_data["current_map"] == "cmitermap": 
-                   if not game_data["night_mode"]:
-                    game_data["night_mode"] = True
-                    game_data["night_timer"] = 60 * 60  # 60 sekúnd pri 60 FPS
-                    game_data["night_text_timer"] = 180
-                    for pit in game_data["grave_pits"]: 
-                        pit['state'] = 'opened' 
-                    
-                    if game_data["current_map"] == "cmitermap":
-                        for _ in range(5):
-                            dist_x = random.randint(300, 600) * random.choice([-1, 1])
-                            dist_y = random.randint(300, 600) * random.choice([-1, 1])
-                            new_enemy_rect = ghost_img.get_rect(topleft=(player.rect.x + dist_x, player.rect.y + dist_y))
-                            game_data["enemies"].append({
-                                "rect": new_enemy_rect,
-                                "image": ghost_img,
-                                "health": 30,
-                                "max_health": 30,
-                                "knockback_x": 0,
-                                "knockback_y": 0
-                            })
+                    if not game_data["night_mode"]:
+                        game_data["night_mode"] = True
+                        game_data["night_timer"] = 60 * 60
+                        game_data["night_text_timer"] = 180
+                        for pit in game_data["grave_pits"]: 
+                            pit['state'] = 'opened' 
+                        
+                        GhostEnemy.spawn_horde(player, game_data, ghost_img, count=5)
 
 
             gui.handle_input(event)
 
         # --- UPDATE NEPRIATEĽOV ---
         for enemy in game_data["enemies"]:
-            e_rect = enemy["rect"]
-            speed = 1
-            if player.rect.x > e_rect.x: e_rect.x += speed
-            if player.rect.x < e_rect.x: e_rect.x -= speed
-            if player.rect.y > e_rect.y: e_rect.y += speed
-            if player.rect.y < e_rect.y: e_rect.y -= speed
+            enemy.update(player)
             
-            if player.rect.colliderect(e_rect):
+            # Útok ducha na hráča
+            if player.rect.colliderect(enemy.rect) and enemy.state == "CHASING":
                 current_time = pygame.time.get_ticks()
-
-                # damage iba raz za 1 sekundu
+                if not hasattr(player, 'last_damage_time'): player.last_damage_time = 0
+                
                 if current_time - player.last_damage_time >= 1000 and not game_over:
-                    player.health -= 10
+                    player.health -= enemy.damage
                     player.last_damage_time = current_time
                     print("HP:", player.health)
-
                     if player.health <= 0:
                         game_over = True
-        game_data["enemies"] = [e for e in game_data["enemies"] if e["health"] > 0]
+        
+        # Zmaž zo zoznamu len tých duchov, ktorí dokončili svoju "DYING" animáciu
+        game_data["enemies"] = [e for e in game_data["enemies"] if not e.is_dead]
 
-
-
-        if (not dialogue_active and not game_over) and not is_busy:
+        if not dialogue_active and not game_over:
             player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
 
         camera.update(player)
@@ -833,7 +751,7 @@ def spustit_hru(screen):
         if game_data["visible_mapchangers"]:
             for zone in game_data["change_map_squares"]:
                 debug_surf = pygame.Surface((zone["rect"].width, zone["rect"].height), pygame.SRCALPHA)
-                debug_surf.fill((255, 255, 0, 120)) # Žltá je lepšie vidieť na tráve
+                debug_surf.fill((255, 255, 0, 120))
                 screen.blit(debug_surf, camera.apply(zone["rect"]))
 
         for pit in game_data["grave_pits"]:
@@ -848,7 +766,7 @@ def spustit_hru(screen):
         for grave in game_data["graves"]:
             render_queue.append({"type": "grave", "obj": grave, "y": grave.rect.bottom})
         for enemy in game_data["enemies"]:
-            render_queue.append({"type": "enemy", "obj": enemy, "y": enemy["rect"].bottom})
+            render_queue.append({"type": "enemy", "obj": enemy, "y": enemy.rect.bottom})
     
         render_queue.sort(key=lambda x: x["y"])
 
@@ -866,20 +784,7 @@ def spustit_hru(screen):
                 screen.blit(obj["image"], draw_pos)
             
             elif item["type"] == "enemy":
-                # VYKRESLENIE OBRÁZKA DUCHA
-                screen.blit(item["obj"]["image"], camera.apply(item["obj"]["rect"]))
-                enemy = item["obj"]
-                rect_on_screen = camera.apply(enemy["rect"])
-
-                bar_width = 40
-                bar_height = 6
-                health_ratio = enemy["health"] / enemy["max_health"]
-
-                bar_x = rect_on_screen.centerx - bar_width // 2
-                bar_y = rect_on_screen.y - 10
-
-                pygame.draw.rect(screen, (150,0,0), (bar_x, bar_y, bar_width, bar_height))
-                pygame.draw.rect(screen, (0,200,0), (bar_x, bar_y, bar_width * health_ratio, bar_height))
+                item["obj"].draw(screen, camera)
 
 
         # --- NPC INTERACT TEXT ---
@@ -893,30 +798,23 @@ def spustit_hru(screen):
         if dialogue_active:
             npc = game_data.get("npc")
             if npc:
-                # 1. Portrét hráča (vľavo)
                 screen.blit(player_dialog_img, (50, screen_height - 450))
-                
-                # 2. Portrét NPC (vpravo - dynamicky podľa toho, s kým sa rozprávaš)
                 screen.blit(npc.portrait, (screen_width - 250, screen_height - 450))
                 
-                # 3. Dialógové okno
                 dialogue_box = pygame.Rect(0, screen_height - 200, screen_width, 200)
-                pygame.draw.rect(screen, (0, 0, 0, 200), dialogue_box) # Pridaná jemná priehľadnosť
-                pygame.draw.rect(screen, (255, 255, 255), dialogue_box, 2) # Biely okraj pre eleganciu
+                pygame.draw.rect(screen, (0, 0, 0, 200), dialogue_box)
+                pygame.draw.rect(screen, (255, 255, 255), dialogue_box, 2)
                 
-                # 4. Text
                 text = npc.dialogue_lines[dialogue_index]
                 rendered_text = font.render(text, True, (255, 255, 255))
                 screen.blit(rendered_text, (50, screen_height - 120))
 
         if game_over:
-            # Šedý overlay
             grey_overlay = pygame.Surface((screen_width, screen_height))
-            grey_overlay.set_alpha(180)  # priehľadnosť (0-255)
-            grey_overlay.fill((0, 0, 0))  # šedá farba
+            grey_overlay.set_alpha(180)
+            grey_overlay.fill((0, 0, 0))
             screen.blit(grey_overlay, (0, 0))
 
-            # Text YOU DIED
             death_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 100)
             death_text = death_font.render("YOU DIED", True, (200, 0, 0))
             text_rect = death_text.get_rect(center=(screen_width//2, screen_height//2))
@@ -931,7 +829,7 @@ def spustit_hru(screen):
                 attack_active = False
             else:
                 direction_angles = {"right": 0, "left": 180, "up": 270, "down": 90}
-                base_angle = direction_angles.get(player.direction, 0)
+                base_angle = direction_angles.get(getattr(player, 'direction', 'down'), 0)
 
                 swing_range = 120 
                 current_swing_angle = base_angle - (progress * swing_range - 60)
@@ -947,53 +845,46 @@ def spustit_hru(screen):
                 screen.blit(rotated_image, camera.apply(sword_rect))
 
                 for enemy in game_data["enemies"]:
-                    if sword_rect.colliderect(enemy["rect"]):
+                    if sword_rect.colliderect(enemy.rect):
                         if enemy not in enemies_hit_this_swing:
-                            enemy["health"] -= 15
+                            knockback_vec = pygame.math.Vector2(enemy.rect.center) - pygame.math.Vector2(player.rect.center)
+                            if knockback_vec.length() > 0:
+                                knockback_vec = knockback_vec.normalize() * 20
+                            else:
+                                knockback_vec = pygame.math.Vector2(0, 0)
+                                
+                            enemy.take_damage(15, knockback_vec)
                             enemies_hit_this_swing.append(enemy)
-                            dx = enemy["rect"].centerx - player.rect.centerx
-                            dy = enemy["rect"].centery - player.rect.centery
-                            dist = math.hypot(dx, dy)
-                            if dist != 0:
-                                enemy["knockback_x"] = (dx / dist) * 20
-                                enemy["knockback_y"] = (dy / dist) * 20
         
         # NIGHT MODE
         if game_data["night_mode"] and not game_over:
-            # 1. Overlay a svetelný kruh sledujúci hráča
             overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 230))
             
-            # Výpočet pozície hráča na obrazovke
             player_screen_pos = camera.apply(player.rect).center
             pygame.draw.circle(overlay, (0, 0, 0, 0), player_screen_pos, 180)
             screen.blit(overlay, (0, 0))
 
-            # 2. Odpočítavanie noci
             game_data["night_timer"] -= 1
             
-            # Zobrazenie textu "NASTALA NOC"
             if game_data["night_text_timer"] > 0:
                 night_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 70)
                 night_text = night_font.render("THE NIGHT HAS COME", True, (255, 255, 255))
                 screen.blit(night_text, night_text.get_rect(center=(screen_width // 2, 100)))
                 game_data["night_text_timer"] -= 1
 
-            # Zobrazenie zostávajúceho času noci
             timer_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 40)
             seconds_left = max(0, game_data["night_timer"] // 60)
             timer_text = timer_font.render(f"The night will end in: {seconds_left}s", True, (255, 255, 255))
             screen.blit(timer_text, (screen_width // 2 -250, screen_height // 2 +200))
 
-            # 3. Koniec noci - upratovanie
             if game_data["night_timer"] <= 0:
                 game_data["night_mode"] = False
-                game_data["enemies"].clear()  # Zabije všetkých duchov
+                game_data["enemies"].clear()
                 for pit in game_data["grave_pits"]: 
-                    pit['state'] = 'closed'  # Zatvorí jamy
+                    pit['state'] = 'closed'
 
         gui.draw()
-        gui.draw_shop()
         fade.draw()
         
         pygame.display.flip()
