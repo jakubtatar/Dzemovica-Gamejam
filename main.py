@@ -262,6 +262,12 @@ def spustit_hru(screen):
     barman__img = pygame.image.load("Resources/NPCs/Barman_Front1.png").convert_alpha()
     barman__img = pygame.transform.scale(barman__img, (50, 100))
 
+    boss__img = pygame.image.load("Resources/NPCs/Melitele_Front1.png").convert_alpha()
+    boss__img = pygame.transform.scale(boss__img, (200, 200))
+
+    boss_dialog_img = pygame.image.load("Resources/NPCs/Melitele_Front1.png").convert_alpha()
+    boss_dialog_img = pygame.transform.scale(boss__img, (350, 350))
+
     barman_dialog_img = pygame.image.load("Resources/NPCs/Barman_Front1.png").convert_alpha()
     barman_dialog_img = pygame.transform.scale(barman_dialog_img, (200, 350))
 
@@ -273,6 +279,8 @@ def spustit_hru(screen):
 
     shopkeeper_dialog_img = pygame.image.load("Resources/NPCs/Shopkeeper_Front1.png").convert_alpha()
     shopkeeper_dialog_img = pygame.transform.scale(shopkeeper__img, (200, 350))
+    
+
 
     # --- SETUP MAPY ---
     game_data = {
@@ -339,6 +347,11 @@ def spustit_hru(screen):
                 "rect": pygame.Rect(450, 0, TILE_SIZE * 3, TILE_SIZE),
                 "target": "houseplace",
                 "spawn": (350, 650)
+            })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(450, 1000, TILE_SIZE * 3, TILE_SIZE),
+                "target": "forest",
+                "spawn": (300, 200)
             })
             game_data["change_map_squares"].append({
                 "rect": pygame.Rect(0, 450, TILE_SIZE, TILE_SIZE * 3),
@@ -611,8 +624,36 @@ def spustit_hru(screen):
                 "image": object_shelf_img,
                 "collidable": True
             })
-        
+        elif map_name == "forest":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/forest.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
 
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(250, 0, TILE_SIZE * 3, TILE_SIZE),
+                "target": "crossroad",
+                "spawn": (500, 850)
+            })
+            if player.day == "Friday":
+                boss_x, boss_y = 250, 1000
+                boss_width, boss_height = 200, 200
+
+                boss_npc = NPC(boss_x, boss_y, boss_width, boss_height, 
+                                "Resources/NPCs/Melitele_Front1.png", 
+                                ["Hello! Welcome to Zabkas!"],
+                                boss_dialog_img)
+                boss_npc.name = "Melitele"
+                game_data["npc"] = boss_npc
+                boss_npc.map_id = "store"
+
+                game_data["map_objects"].append({
+                    "rect": boss_npc.rect,
+                    "image": boss__img,
+                    "collidable": False,
+                    "npc_ref": boss_npc
+                })
+            
         # Objekty do kolízií (len kolidovateľné)
         for obj in game_data["map_objects"]:
             if obj["collidable"]:
@@ -647,7 +688,7 @@ def spustit_hru(screen):
     saturday_manager = Saturday(screen, player, gui, game_data)
     sunday_manager = Sunday(screen, player, gui, game_data)
 
-    current_day_manager = monday_manager
+    current_day_manager = friday_manager
     player.day = "Monday"
 
     game_data["night_mode"] = False
