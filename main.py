@@ -173,6 +173,8 @@ def spustit_hru(screen):
         object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
         object_taverna_img = pygame.image.load(r"Resources/Objects/Object_Taverna.png").convert_alpha()
         object_bridge_img = pygame.image.load(r"Resources/Objects/Object_Bridge.png").convert_alpha()
+        object_register_img = pygame.image.load(r"Resources/Objects/Object_Register.png").convert_alpha() 
+        object_fruit_img = pygame.image.load(r"Resources/Objects/Object_Fruit.png").convert_alpha() 
 
         object_bottleshelf_img = pygame.image.load(r"Resources/Objects/Object_BottleShelf.png").convert_alpha()
         object_barchair_img = pygame.image.load(r"Resources/Objects/Object_BarChair.png").convert_alpha()
@@ -223,6 +225,8 @@ def spustit_hru(screen):
     object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
     object_taverna_img = pygame.transform.scale(object_taverna_img, (TILE_SIZE * 7, TILE_SIZE * 7))
     object_bridge_img = pygame.transform.scale(object_bridge_img, (TILE_SIZE * 3, TILE_SIZE * 3))
+    object_register_img  = pygame.transform.scale(object_register_img, (TILE_SIZE * 4, TILE_SIZE * 2))
+    object_fruit_img  = pygame.transform.scale(object_fruit_img, (TILE_SIZE * 4, TILE_SIZE * 4))
 
     #nabytok
     object_bottleshelf_img = pygame.transform.scale(object_bottleshelf_img, (TILE_SIZE *4, TILE_SIZE *4))
@@ -495,12 +499,13 @@ def spustit_hru(screen):
             player.rect.topleft = (100, 500)
 
             game_data["change_map_squares"].append({
-                "rect": pygame.Rect(200, 400, TILE_SIZE*3, TILE_SIZE),
+                "rect": pygame.Rect(200, 500, TILE_SIZE*3, TILE_SIZE),
                 "target": "village",
                 "spawn": (1700, 1000)
             })
+            
 
-            shopkeeper_x, shopkeeper_y = 400, 150
+            shopkeeper_x, shopkeeper_y = 200, 0
             shopkeeper_width, shopkeeper_height = 60, 100
 
             shopkeeper_npc = NPC(shopkeeper_x, shopkeeper_y, shopkeeper_width, shopkeeper_height, 
@@ -515,6 +520,16 @@ def spustit_hru(screen):
                 "image": shopkeeper__img,
                 "collidable": False,
                 "npc_ref": shopkeeper__img
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(50, 100, TILE_SIZE * 4, TILE_SIZE * 2),
+                "image": object_register_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(50, 250, TILE_SIZE * 4, TILE_SIZE * 4),
+                "image": object_fruit_img,
+                "collidable": True
             })
         
 
