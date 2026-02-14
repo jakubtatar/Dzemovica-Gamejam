@@ -180,7 +180,11 @@ def spustit_hru(screen):
         object_bottleshelf_img = pygame.image.load(r"Resources/Objects/Object_BottleShelf.png").convert_alpha()
         object_barchair_img = pygame.image.load(r"Resources/Objects/Object_BarChair.png").convert_alpha()
         object_counter_img = pygame.image.load(r"Resources/Objects/Object_Counter.png").convert_alpha()
-        object_bartable_img = pygame.image.load(r"Resources/Objects/Object_Bartable.png").convert_alpha()        
+        object_bartable_img = pygame.image.load(r"Resources/Objects/Object_Bartable.png").convert_alpha()
+
+        object_bed_img = pygame.image.load(r"Resources/Objects/Object_Bed.png").convert_alpha()
+        object_wardrobe_img = pygame.image.load(r"Resources/Objects/Object_Wardrobe.png").convert_alpha()   
+        object_desk_img = pygame.image.load(r"Resources/Objects/Object_Desk.png").convert_alpha()               
 
         # --- NOVÝ OBRÁZOK DUCHA ---
         ghost_img = pygame.image.load(r"Resources/NPCs/Ghost_Front1.png").convert_alpha()
@@ -236,6 +240,9 @@ def spustit_hru(screen):
     object_barchair_img = pygame.transform.scale(object_barchair_img, (TILE_SIZE *1.5, TILE_SIZE *1.5))
     object_counter_img = pygame.transform.scale(object_counter_img, (TILE_SIZE *1.5, TILE_SIZE *1.5))
     object_bartable_img = pygame.transform.scale(object_bartable_img, (TILE_SIZE *3, TILE_SIZE *3))
+    object_bed_img = pygame.transform.scale(object_bed_img, (TILE_SIZE *2, TILE_SIZE *2.5))
+    object_wardrobe_img = pygame.transform.scale(object_wardrobe_img, (TILE_SIZE *2, TILE_SIZE *3))
+    object_desk_img = pygame.transform.scale(object_desk_img, (TILE_SIZE *2, TILE_SIZE *3))
 
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
@@ -433,6 +440,23 @@ def spustit_hru(screen):
                 "rect": pygame.Rect(150, 550, TILE_SIZE, TILE_SIZE),
                 "target": "houseplace",
                 "spawn": (250, 500)
+            })
+            
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(200, 75, TILE_SIZE * 2, TILE_SIZE * 2.5),
+                "image": object_bed_img,
+                "collidable": True
+            })
+
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(50, 50, TILE_SIZE * 2, TILE_SIZE * 3),
+                "image": object_wardrobe_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(200, 300, TILE_SIZE * 2, TILE_SIZE * 3),
+                "image": object_desk_img,
+                "collidable": True
             })
 
         elif map_name == "taverna":
