@@ -14,9 +14,19 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 
+from gamedays import Monday
+from gamedays import Tuesday
+
+pygame.mixer.init()
+current_track = None
+
+# --- DÔLEŽITÉ: IMPORT ESC MENU ---
+from EscMenu import EscMenu
 
 try:
     from graveDigMinigame import GraveDigMinigame
+    from graveDigMinigame import TimingDigMinigame
+    from graveDigMinigame import SequenceDigMinigame
 except ImportError:
     print("POZOR: graveDigMinigame.py nenájdený. Kopanie nebude fungovať.")
     class GraveDigMinigame:
@@ -49,15 +59,47 @@ try:
     from quest import Quest
 except ImportError:
     class Quest: pass 
-try:
-    from objectZone import ObjectZone
-except ImportError:
-    class ObjectZone: pass
-
-
 # ==========================================
 # HLAVNÁ FUNKCIA HRY
 # ==========================================
+def rotate_surface(surface, angle, pivot, offset):
+    rotated_image = pygame.transform.rotate(surface, angle)
+    rotated_rect = rotated_image.get_rect(center=pivot + offset)
+    return rotated_image, rotated_rect
+
+def handle_music(is_night):
+    global current_track
+        
+        # OPRAVA: Cesta musí byť relatívna (bez úvodného lomítka) 
+        # a zjednoť si priečinky (Music vs Audio)
+    if is_night:
+            target_track = os.path.join("Resources", "Music", "Night.mp3")
+    else:
+            target_track = os.path.join("Resources", "Music", "Day.mp3")
+            
+    if current_track != target_track:
+            try:
+                if target_track:
+                    # Skontrolujeme, či súbor vôbec existuje, než ho načítame
+                    if os.path.exists(target_track):
+                        pygame.mixer.music.fadeout(1000)
+                        pygame.mixer.music.load(target_track)
+                        pygame.mixer.music.play(-1)
+                        if target_track == os.path.join("Resources", "Music", "Day.mp3"):
+                            pygame.mixer.music.set_volume(0.01)
+                        else:
+                            pygame.mixer.music.set_volume(0.8)
+                        current_track = target_track
+                        print(f"Hrá hudba: {target_track}")
+                    else:
+                        print(f"CHYBA: Súbor nenájdený na ceste: {os.path.abspath(target_track)}")
+                        # Nastavíme current_track na target_track, aby to nekričalo v každom frame
+                        current_track = target_track 
+                else:
+                    pygame.mixer.music.fadeout(1000)
+                    current_track = None
+            except Exception as e:
+                print(f"Chyba pri načítaní hudby: {e}")
 
 def spustit_hru(screen):
     screen_width, screen_height = screen.get_size()
@@ -109,11 +151,17 @@ def spustit_hru(screen):
         wall_RD_img = pygame.image.load(r"Resources/Walls/Wall_RD.png").convert_alpha()
         wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()
 
+        path_img = pygame.image.load(r"Resources/Floors/Floor_Path.png").convert_alpha()
+        floor_tiles_img = pygame.image.load(r"Resources/Floors/Floor_Tiles.png").convert_alpha()
+
         wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()
         wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()
 
         grave_closed_img = pygame.image.load(r"Resources/Grave_Closed.png").convert_alpha()
         grave_opened_img = pygame.image.load(r"Resources/Grave_Opened.png").convert_alpha()
+
+        #Voda
+        water_gif = pygame.image.load(r"Resources/Water.gif").convert_alpha()
 
         # Objekty
         object_well_img = pygame.image.load(r"Resources/Objects/Object_Well.png").convert_alpha()
@@ -122,12 +170,21 @@ def spustit_hru(screen):
         object_shop_img = pygame.image.load(r"Resources/Objects/Object_Zabkas.png").convert_alpha()
         object_tree_img = pygame.image.load(r"Resources/Objects/Object_Tree.png").convert_alpha()
         object_taverna_img = pygame.image.load(r"Resources/Objects/Object_Taverna.png").convert_alpha()
+        object_bridge_img = pygame.image.load(r"Resources/Objects/Object_Bridge.png").convert_alpha()
+
+        object_bottleshelf_img = pygame.image.load(r"Resources/Objects/Object_BottleShelf.png").convert_alpha()
+        object_barchair_img = pygame.image.load(r"Resources/Objects/Object_BarChair.png").convert_alpha()
+        object_counter_img = pygame.image.load(r"Resources/Objects/Object_Counter.png").convert_alpha()
+
+        # --- NOVÝ OBRÁZOK DUCHA ---
+        ghost_img = pygame.image.load(r"Resources/NPCs/Ghost_Front1.png").convert_alpha()
+        ghost_img = pygame.transform.scale(ghost_img, (50, 70)) # Zmena mierky (šírka 50, výška 70)
 
     except Exception as e:
         print(f"CHYBA PRI NAČÍTANÍ OBRÁZKOV: {e}")
         return
 
-    # Škálovanie
+    # Škálovanie ostatných
     tile1_img = pygame.transform.scale(tile1_img, (TILE_SIZE, TILE_SIZE))
     tile2_img = pygame.transform.scale(tile2_img, (TILE_SIZE, TILE_SIZE))
     hedgefront_img = pygame.transform.scale(hedgefront_img, (TILE_SIZE, TILE_SIZE))
@@ -149,6 +206,10 @@ def spustit_hru(screen):
     wall_LD_img = pygame.transform.scale(wall_LD_img, (TILE_SIZE, TILE_SIZE))
     wheat_wall_img = pygame.transform.scale(wheat_wall_img, (TILE_SIZE, TILE_SIZE))
     wheat_wall_top_img = pygame.transform.scale(wheat_wall_top_img, (TILE_SIZE, TILE_SIZE))
+
+    water_gif = pygame.transform.scale(water_gif, (TILE_SIZE, TILE_SIZE))
+    path_img = pygame.transform.scale(path_img, (TILE_SIZE, TILE_SIZE))
+    floor_tiles_img = pygame.transform.scale(floor_tiles_img, (TILE_SIZE, TILE_SIZE))
     
     grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
     grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
@@ -159,6 +220,11 @@ def spustit_hru(screen):
     object_shop_img = pygame.transform.scale(object_shop_img, (TILE_SIZE * 7, TILE_SIZE * 7))
     object_tree_img = pygame.transform.scale(object_tree_img, (TILE_SIZE * 7, TILE_SIZE * 7))
     object_taverna_img = pygame.transform.scale(object_taverna_img, (TILE_SIZE * 7, TILE_SIZE * 7))
+    object_bridge_img = pygame.transform.scale(object_bridge_img, (TILE_SIZE * 3, TILE_SIZE * 3))
+
+    #nabytok
+    object_bottleshelf_img = pygame.transform.scale(object_bottleshelf_img, (TILE_SIZE *4, TILE_SIZE *4))
+    object_counter_img = pygame.transform.scale(object_counter_img, (TILE_SIZE *1.5, TILE_SIZE *1.5))
 
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
@@ -167,6 +233,13 @@ def spustit_hru(screen):
 
     priest__img = pygame.image.load("Resources/NPCs/Priest_Front1.png").convert_alpha()
     priest__img = pygame.transform.scale(priest__img, (50, 100))
+
+    barman__img = pygame.image.load("Resources/NPCs/Barman_Front1.png").convert_alpha()
+    barman__img = pygame.transform.scale(barman__img, (50, 100))
+
+    barman_dialog_img = pygame.image.load("Resources/NPCs/Barman_Front1.png").convert_alpha()
+    barman_dialog_img = pygame.transform.scale(barman_dialog_img, (200, 350))
+
     priest_dialog_img = pygame.image.load("Resources/NPCs/Priest_Front1.png").convert_alpha()
     priest_dialog_img = pygame.transform.scale(priest_dialog_img, (200, 350))
 
@@ -180,10 +253,18 @@ def spustit_hru(screen):
         "current_map": "",
         "graves": [],       
         "grave_pits": [],
-        "enemies": [], # Zoznam pre červených nepriateľov
+        "enemies": [], # Zoznam pre duchov (ukladáme slovníky: {"rect": Rect, "image": Surface})
         "persistent_graves": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
         "persistent_pits": { "cmitermap": [], "crossroad": [], "houseplace": [], "village": [] },
-        "map_switch_cooldown": 0
+        "map_switch_cooldown": 0,
+        "night_mode": False,
+        "night_timer": 0,
+        "night_text_timer": 0,
+        "visible_mapchangers": True, #Developerske nastavenie
+        "last_dig_time": 0,
+        "dig_cooldown": 2000, # 2 sekundy pauza medzi kopaním (v milisekundách)
+        "gameday": 1,
+        "night_finished": False, 
     }
 
     def setup_map(map_name):
@@ -191,7 +272,6 @@ def spustit_hru(screen):
         game_data["map_objects"] = []
         game_data["change_map_squares"] = []
         game_data["collidable_walls"] = []
-        # Vymažeme nepriateľov pri zmene mapy
         game_data["enemies"] = []
 
         if map_name == "cmitermap":
@@ -237,7 +317,7 @@ def spustit_hru(screen):
             game_data["change_map_squares"].append({
                 "rect": pygame.Rect(1000, 450, TILE_SIZE, TILE_SIZE * 3),
                 "target": "village",
-                "spawn": (200, 350)
+                "spawn": (200, 700)
             })
 
         elif map_name == "houseplace":
@@ -251,6 +331,13 @@ def spustit_hru(screen):
                 "target": "crossroad",
                 "spawn": (500, 100)
             })
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(250, 430, TILE_SIZE, TILE_SIZE),
+                "target": "house",
+                "spawn": (150, 450)
+            })
+
             game_data["map_objects"].append({
                 "rect": pygame.Rect(200, 100, TILE_SIZE * 7, TILE_SIZE * 7),
                 "image": object_house_img,
@@ -264,51 +351,151 @@ def spustit_hru(screen):
             player.rect.topleft = (100, 500)
 
             game_data["change_map_squares"].append({
-                "rect": pygame.Rect(0, 300, TILE_SIZE, TILE_SIZE * 3),
+                "rect": pygame.Rect(0, 600, TILE_SIZE, TILE_SIZE * 3),
                 "target": "crossroad",
                 "spawn": (900, 500)
             })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(1750, 320, TILE_SIZE*3, TILE_SIZE * 3),
+                "target": "taverna",
+                "spawn": (400, 500)
+            })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(1600, 770, TILE_SIZE*3, TILE_SIZE * 3),
+                "target": "store",
+                "spawn": (200, 350)
+            })
             game_data["map_objects"].append({
-                "rect": pygame.Rect(600, -400, TILE_SIZE * 14, TILE_SIZE * 14),
+                "rect": pygame.Rect(900, -400, TILE_SIZE * 14, TILE_SIZE * 14),
                 "image": object_church_img,
                 "collidable": True
             })
             game_data["map_objects"].append({
-                "rect": pygame.Rect(1400, 0, TILE_SIZE * 7, TILE_SIZE * 7),
+                "rect": pygame.Rect(1600, 550, TILE_SIZE * 7, TILE_SIZE * 7),
                 "image": object_shop_img,
                 "collidable": True
             })
             game_data["map_objects"].append({
-                "rect": pygame.Rect(1900, 0, TILE_SIZE * 7, TILE_SIZE * 7),
+                "rect": pygame.Rect(1650, 100, TILE_SIZE * 7, TILE_SIZE * 7),
                 "image": object_taverna_img,
                 "collidable": True
             })
+            tree_positions = [(350, 250),(650, 200), (850, 500), (1250, 400), (1300, 800), (700, -150), (1550, -150), (1850, 200)]
+            for pos in tree_positions:
+                game_data["map_objects"].append({
+                    "rect": pygame.Rect(pos[0], pos[1], TILE_SIZE * 7, TILE_SIZE * 7),
+                    "image": object_tree_img,
+                    "collidable": False
+                })
 
-            priest_x, priest_y = 800, 400  # tu nastav svoju pozíciu
+            priest_x, priest_y = 1400, 230
             priest_width, priest_height = 60, 100
 
-            priest_npc = NPC(
-                priest_x, priest_y,
-                priest_width, priest_height,
-                "Resources/NPCs/Priest_Front1.png",
-                [
-                    "My son...",
-                    "Darkness is spreading across the land.",
-                    "You need to protect the village.",
-                    "God be with you."
-                ]
-            )
+            priest_npc = NPC(priest_x, priest_y, priest_width, priest_height, 
+                 "Resources/NPCs/Priest_Front1.png", 
+                 ["My son...", "Darkness is spreading.", "God be with you."],
+                 priest_dialog_img) # <--- Posielame portrét kňaza
 
-            # uloženie do game_data
             game_data["npc"] = priest_npc
 
-            # pridanie do map_objects, aby sa vykresľoval
             game_data["map_objects"].append({
                 "rect": priest_npc.rect,
                 "image": priest__img,
-                "collidable": False,  # môžeš nastaviť True, ak chceš, aby hráč nemohol prejsť cez kňaza
-                "npc_ref": priest_npc  # optional, aby si mal odkaz na NPC
+                "collidable": False,
+                "npc_ref": priest_npc
             })
+            priest_npc.name = "Priest"
+
+
+        elif map_name == "house":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/house.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(150, 550, TILE_SIZE, TILE_SIZE),
+                "target": "houseplace",
+                "spawn": (250, 500)
+            })
+
+        elif map_name == "taverna":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/taverna.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(300, 550, TILE_SIZE*3, TILE_SIZE),
+                "target": "village",
+                "spawn": (1800, 500)
+            })
+
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(500, 0, TILE_SIZE * 4, TILE_SIZE * 4),
+                "image": object_bottleshelf_img,
+                "collidable": True
+            })
+
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(300, 0, TILE_SIZE * 4, TILE_SIZE * 4),
+                "image": object_bottleshelf_img,
+                "collidable": True
+            })
+
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(400, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_counter_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(475, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_counter_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(550, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_counter_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(625, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_counter_img,
+                "collidable": True
+            })
+
+            barman_x, barman_y = 400, 150
+            barman_width, barman_height = 60, 100
+
+            # V setup_map pod map_name == "taverna"
+            barman_npc = NPC(barman_x, barman_y, barman_width, barman_height, 
+                            "Resources/NPCs/Barman_Front1.png", 
+                            ["Vitaj Hugo! Vyzeráš hrozne.", 
+                            "Tu máš pivo na domáci účet.", 
+                            "Kňaz ťa hľadal, vraj máš prácu na cintoríne."],
+                            barman_dialog_img)
+            barman_npc.name = "Barman" # Pridané meno pre questy
+            game_data["npc"] = barman_npc
+
+            game_data["map_objects"].append({
+                "rect": barman_npc.rect,
+                "image": barman__img,
+                "collidable": False,
+                "npc_ref": barman_npc
+            })
+
+        elif map_name == "store":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/store.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(200, 400, TILE_SIZE*3, TILE_SIZE),
+                "target": "village",
+                "spawn": (1700, 1000)
+            })
+        
 
 
         # Objekty do kolízií (len kolidovateľné)
@@ -324,18 +511,67 @@ def spustit_hru(screen):
     dialogue_index = 0
     font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 32)
 
+    attack_active = False
+    attack_start_time = 0
+    attack_duration = 150  # čas swingu v ms
+    sword_length = 70
+    sword_width = 10
+    sword_surf = pygame.Surface((sword_length, sword_width), pygame.SRCALPHA)
+    pygame.draw.rect(sword_surf, (100, 50, 0), (0, 0, 10, sword_width)) 
+    pygame.draw.rect(sword_surf, (200, 200, 200), (10, 0, sword_length - 10, sword_width)) 
+    enemies_hit_this_swing = []
+
+    monday_manager = Monday(screen, player, gui, game_data)
+    tuesday_manager = Tuesday(screen, player, gui, game_data)
+
+    # Explicitne nastavíme Pondelok ako začiatok
+    current_day_manager = monday_manager
+    player.day = "Monday"
+
+    # Resetujeme dôležité flagy v game_data, aby Tuesday nezačal predčasne
+    game_data["night_mode"] = False
+    game_data["night_finished"] = False
+    game_data["gameday"] = 1 
+
+    # Spustíme štartovaciu logiku pondelka (nastavenie mapy a prvého questu)
+    current_day_manager.start(setup_map)
+
 
     # --- HERNÁ SLUČKA ---
     running = True
+    game_over = False
+
     while running:
+        is_night = game_data.get("night_mode", False) # Získaj stav noci
+        handle_music(is_night)
         selected_item = gui.get_selected_item()
+
+        if game_data["night_mode"]:
+            game_data["night_timer"] -= 1
+            if game_data["night_timer"] <= 0:
+                game_data["night_mode"] = False
+                game_data["night_finished"] = True # POVIE HRÁČOVI, ŽE PREŽIL
+                current_day_manager.day_finished = True
+
+      # 1. Updateujeme questy aktuálneho dňa
+        current_day_manager.update_quests()
+
+        # 2. Kontrola, či deň skončil
+        if current_day_manager.day_finished:
+            if player.day == "Monday" and game_data.get("night_finished"): # PRIDANÁ PODMIENKA
+                player.day = "Tuesday"
+                current_day_manager = tuesday_manager
+                current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False # Reset pre ďalšiu noc
         
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1
 
         if game_data["map_switch_cooldown"] == 0:
             for zone in game_data["change_map_squares"]:
-                if player.rect.colliderect(zone["rect"]):
+                if player.rect.colliderect(zone["rect"]) and not game_data["night_mode"]:
+                    fade.fade_in()
                     stara_mapa = game_data["current_map"]
                     game_data["persistent_graves"][stara_mapa] = game_data["graves"]
                     game_data["persistent_pits"][stara_mapa] = game_data["grave_pits"]
@@ -358,14 +594,20 @@ def spustit_hru(screen):
                 pygame.quit(); sys.exit()
             
             if event.type == pygame.KEYDOWN:
+                # --- NOVÁ ESC LOGIKA ---
                 if event.key == pygame.K_ESCAPE:
-                    return
+                    menu = EscMenu(screen)
+                    vysledok = menu.run()
+                    if vysledok == "quit":
+                        return  # Vráti sa do menu.py
+                
                 if event.key == pygame.K_e:
-                    if game_data["current_map"] == "village":
+                    if event.key == pygame.K_e:
                         npc = game_data.get("npc")
-                        if npc and player.rect.colliderect(npc.rect.inflate(40,40)):
+                        if npc and player.rect.colliderect(npc.rect.inflate(40, 40)):
                             dialogue_active = True
                             dialogue_index = 0
+                            game_data["dialogue_active"] = True # Pridaj toto!
 
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
@@ -374,65 +616,136 @@ def spustit_hru(screen):
                     npc = game_data.get("npc")
                     if dialogue_index >= len(npc.dialogue_lines):
                         dialogue_active = False
+                        game_data["dialogue_active"] = False # Pridaj toto!
                     continue
 
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: 
-                    if selected_item == "[2] Shovel":
-                        if game_data["current_map"] == "cmitermap":
-                            minigame = GraveDigMinigame(screen)
-                            reward = minigame.run()
-                            
-                            if not hasattr(player, 'money'): player.money = 0
-                            player.money += reward
+                if event.button == 1 and not game_over: 
+                    if selected_item == "[1] Sword":  # uprav podľa názvu v GUI
+                        attack_active = True
+                        attack_start_time = pygame.time.get_ticks()
 
-                            gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
-                            gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                        attack_size = 100
+
+                        if player.direction == "right":
+                            attack_rect = pygame.Rect(player.rect.right, player.rect.centery-20, attack_size, 40)
+                        elif player.direction == "left":
+                            attack_rect = pygame.Rect(player.rect.left-attack_size, player.rect.centery-20, attack_size, 40)
+                        elif player.direction == "up":
+                            attack_rect = pygame.Rect(player.rect.centerx-20, player.rect.top-attack_size, 40, attack_size)
+                        elif player.direction == "down":
+                            attack_rect = pygame.Rect(player.rect.centerx-20, player.rect.bottom, 40, attack_size)
+
+                        # DAMAGE CHECK
+                        for enemy in game_data["enemies"]:
+                            enemy["rect"].x += enemy["knockback_x"]
+                            enemy["rect"].y += enemy["knockback_y"]
+
+                            enemy["knockback_x"] *= 0.85
+                            enemy["knockback_y"] *= 0.85
+                            if attack_rect.colliderect(enemy["rect"]):
+
+                                enemy["health"] -= 15
+
+                                # --- KNOCKBACK ---
+                                dx = enemy["rect"].centerx - player.rect.centerx
+                                dy = enemy["rect"].centery - player.rect.centery
+                                length = math.hypot(dx, dy)
+
+                                if length != 0:
+                                    dx /= length
+                                    dy /= length
+
+                                knockback_strength = 15
+                                enemy["knockback_x"] = dx * knockback_strength
+                                enemy["knockback_y"] = dy * knockback_strength
+                    if selected_item == "[2] Shovel" and not game_data["night_mode"]:
+                        current_time = pygame.time.get_ticks()
+                        
+                        # 1. Kontrola cooldownu
+                        if current_time - game_data["last_dig_time"] < game_data["dig_cooldown"]:
+                            print("Ešte si unavený...")
+                        elif game_data["current_map"] == "cmitermap":
                             
-                            new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
-                            new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
+                            # Spustenie minihry
+                            chosen_minigame = random.choice([GraveDigMinigame, TimingDigMinigame, SequenceDigMinigame])
+                            minigame = chosen_minigame(screen)
+                            reward = minigame.run() 
+
+                            pygame.event.clear() 
                             
-                            game_data["graves"].append(new_grave) 
-                            game_data["grave_pits"].append(new_pit)
-                            game_data["collidable_walls"].append(new_pit['rect'])
+                            # Nastavíme cooldown hneď po skončení (úspešnom aj neúspešnom)
+                            game_data["last_dig_time"] = pygame.time.get_ticks()
+
+                            # 2. Vyhodnotenie výsledku
+                            if reward > 0:
+                                if not hasattr(player, 'money'): player.money = 0
+                                player.money += reward
+
+                                gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
+                                gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
+                                
+                                new_grave = Grave(gx, gy, TILE_SIZE, gravestone_images)
+                                new_pit = { 'rect': pygame.Rect(gx, gy + 50, TILE_SIZE, TILE_SIZE * 2), 'state': 'closed' }
+                                
+                                game_data["graves"].append(new_grave) 
+                                game_data["grave_pits"].append(new_pit)
+                                game_data["collidable_walls"].append(new_pit['rect'])
+                            else:
+                                print("Minihra zatvorená - neúspech.")
                         else:
-                            print("Pôda je tu príliš tvrdá na kopanie.")
+                            print("Tu sa kopať nedá.")
 
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
-                elif event.button == 3: 
-                    # 1. Otvoriť hroby
+                elif (event.button == 3 and not game_over) and game_data["current_map"] == "cmitermap": 
+                   if not game_data["night_mode"]:
+                    game_data["night_mode"] = True
+                    game_data["night_timer"] = 60 * 60  # 60 sekúnd pri 60 FPS
+                    game_data["night_text_timer"] = 180
                     for pit in game_data["grave_pits"]: 
                         pit['state'] = 'opened' 
                     
-                    # 2. Spawn nepriateľov (len ak sme na cintoríne)
                     if game_data["current_map"] == "cmitermap":
-                         for _ in range(5):
-                            # Náhodná vzdialenosť od 300 do 600 pixelov (trochu ďalej)
+                        for _ in range(5):
                             dist_x = random.randint(300, 600) * random.choice([-1, 1])
                             dist_y = random.randint(300, 600) * random.choice([-1, 1])
-                            
-                            spawn_x = player.rect.x + dist_x
-                            spawn_y = player.rect.y + dist_y
-                            
-                            enemy_rect = pygame.Rect(spawn_x, spawn_y, 30, 30)
-                            game_data["enemies"].append(enemy_rect)
+                            new_enemy_rect = ghost_img.get_rect(topleft=(player.rect.x + dist_x, player.rect.y + dist_y))
+                            game_data["enemies"].append({
+                                "rect": new_enemy_rect,
+                                "image": ghost_img,
+                                "health": 30,
+                                "max_health": 30,
+                                "knockback_x": 0,
+                                "knockback_y": 0
+                            })
+
 
             gui.handle_input(event)
 
         # --- UPDATE NEPRIATEĽOV ---
         for enemy in game_data["enemies"]:
-            # Rýchlosť znížená na 1 (pomalší)
+            e_rect = enemy["rect"]
             speed = 1
-            if player.rect.x > enemy.x: enemy.x += speed
-            if player.rect.x < enemy.x: enemy.x -= speed
-            if player.rect.y > enemy.y: enemy.y += speed
-            if player.rect.y < enemy.y: enemy.y -= speed
+            if player.rect.x > e_rect.x: e_rect.x += speed
+            if player.rect.x < e_rect.x: e_rect.x -= speed
+            if player.rect.y > e_rect.y: e_rect.y += speed
+            if player.rect.y < e_rect.y: e_rect.y -= speed
             
-            # Kontrola dotyku s hráčom
-            if player.rect.colliderect(enemy):
-                print("GAME OVER - Zomrel si!")
-                return # Vráti do menu (vypne hru)
+            if player.rect.colliderect(e_rect):
+                current_time = pygame.time.get_ticks()
 
-        if not dialogue_active:
+                # damage iba raz za 1 sekundu
+                if current_time - player.last_damage_time >= 1000 and not game_over:
+                    player.health -= 10
+                    player.last_damage_time = current_time
+                    print("HP:", player.health)
+
+                    if player.health <= 0:
+                        game_over = True
+        game_data["enemies"] = [e for e in game_data["enemies"] if e["health"] > 0]
+
+
+
+        if not dialogue_active and not game_over:
             player.handle_keys_with_collision(4000, 4000, game_data["collidable_walls"])
 
         camera.update(player)
@@ -441,7 +754,6 @@ def spustit_hru(screen):
         # --- VYKRESĽOVANIE ---
         screen.fill((8, 50, 20))
 
-        # 1. Vrstva: Podlaha a steny (Tilemap)
         for rect, tile_type in game_data["walls"]:
             maps_manager.drawTilemap(
                 screen, tile_type, rect, camera,
@@ -453,53 +765,31 @@ def spustit_hru(screen):
                 wall_img, wall_front_img, wall_top_img,
                 wall_left_img, wall_right_img,
                 wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img,
-                wheat_wall_img, wheat_wall_top_img
+                wheat_wall_img, wheat_wall_top_img, water_gif, path_img, floor_tiles_img
             )
 
-        # 2. Vrstva: Jamy (Sú na zemi, vždy pod hráčom a objektmi)
+        if game_data["visible_mapchangers"]:
+            for zone in game_data["change_map_squares"]:
+                debug_surf = pygame.Surface((zone["rect"].width, zone["rect"].height), pygame.SRCALPHA)
+                debug_surf.fill((255, 255, 0, 120)) # Žltá je lepšie vidieť na tráve
+                screen.blit(debug_surf, camera.apply(zone["rect"]))
+
         for pit in game_data["grave_pits"]:
             image_to_draw = grave_closed_img if pit['state'] == 'closed' else grave_opened_img
             screen.blit(image_to_draw, camera.apply(pit['rect']))
 
-        # 3. Vrstva: Y-SORTING (Hráč, Objekty, Hroby, Nepriatelia)
-        # Všetky entity, ktoré majú "výšku", dáme do jedného zoznamu a zoradíme podľa Y
+        # Y-SORTING
         render_queue = []
-
-        # Pridaj Hráča
-        render_queue.append({
-            "type": "player",
-            "obj": player,
-            "y": player.rect.bottom # Triedime podľa spodku nôh
-        })
-
-        # Pridaj Objekty (Domy, stromy...)
+        render_queue.append({"type": "player", "obj": player, "y": player.rect.bottom})
         for obj in game_data["map_objects"]:
-            render_queue.append({
-                "type": "object",
-                "obj": obj,
-                "y": obj["rect"].bottom # Triedime podľa spodku kolízneho boxu
-            })
-
-        # Pridaj Hroby (Náhrobné kamene)
+            render_queue.append({"type": "object", "obj": obj, "y": obj["rect"].bottom})
         for grave in game_data["graves"]:
-            render_queue.append({
-                "type": "grave",
-                "obj": grave,
-                "y": grave.rect.bottom
-            })
-
-        # Pridaj Nepriateľov
+            render_queue.append({"type": "grave", "obj": grave, "y": grave.rect.bottom})
         for enemy in game_data["enemies"]:
-            render_queue.append({ 
-                "type": "enemy", 
-                "obj": enemy, 
-                "y": enemy.bottom 
-            })
-
-        # Zoradenie podľa Y súradnice (vzostupne - čo je vyššie na obrazovke, vykreslí sa skôr)
+            render_queue.append({"type": "enemy", "obj": enemy, "y": enemy["rect"].bottom})
+    
         render_queue.sort(key=lambda x: x["y"])
 
-        # Vykreslenie zoradených entít
         for item in render_queue:
             if item["type"] == "player":
                 try: item["obj"].draw(screen, camera)
@@ -510,43 +800,137 @@ def spustit_hru(screen):
             
             elif item["type"] == "object":
                 obj = item["obj"]
-                # Výpočet pozície: obrázok je vyšší ako rect, musí "trčať" hore
                 draw_pos = camera.apply(obj["rect"]).move(0, obj["rect"].height - obj["image"].get_height())
                 screen.blit(obj["image"], draw_pos)
             
             elif item["type"] == "enemy":
-                pygame.draw.rect(screen, (255, 0, 0), camera.apply(item["obj"]))
+                # VYKRESLENIE OBRÁZKA DUCHA
+                screen.blit(item["obj"]["image"], camera.apply(item["obj"]["rect"]))
+                enemy = item["obj"]
+                rect_on_screen = camera.apply(enemy["rect"])
 
-        # --- "Press E" INTERACT TEXT nad NPC (po vykreslení NPC) ---
+                bar_width = 40
+                bar_height = 6
+                health_ratio = enemy["health"] / enemy["max_health"]
+
+                bar_x = rect_on_screen.centerx - bar_width // 2
+                bar_y = rect_on_screen.y - 10
+
+                pygame.draw.rect(screen, (150,0,0), (bar_x, bar_y, bar_width, bar_height))
+                pygame.draw.rect(screen, (0,200,0), (bar_x, bar_y, bar_width * health_ratio, bar_height))
+
+
+        # --- NPC INTERACT TEXT ---
         npc = game_data.get("npc")
         if npc and player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
             interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
             interact_text = interact_font.render("Press E", True, (255, 255, 0))
-            # vypočíta pozíciu nad hlavou NPC
             text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
             screen.blit(interact_text, camera.apply(text_rect))
 
-        # Dialogy (ak sú aktívne, vykreslíme ich navrchu všetkého)
         if dialogue_active:
-        
-            # Obrázok hráča (ľavá strana)
-            screen.blit(player_dialog_img, (50, screen_height - 450))
-
-            # Obrázok kňaza (pravá strana)
-            screen.blit(priest_dialog_img, (screen_width - 250, screen_height - 450))
-
-            dialogue_box = pygame.Rect(0, screen_height - 200, screen_width, 200)
-            pygame.draw.rect(screen, (0,0,0), dialogue_box)
-
             npc = game_data.get("npc")
+            if npc:
+                # 1. Portrét hráča (vľavo)
+                screen.blit(player_dialog_img, (50, screen_height - 450))
+                
+                # 2. Portrét NPC (vpravo - dynamicky podľa toho, s kým sa rozprávaš)
+                screen.blit(npc.portrait, (screen_width - 250, screen_height - 450))
+                
+                # 3. Dialógové okno
+                dialogue_box = pygame.Rect(0, screen_height - 200, screen_width, 200)
+                pygame.draw.rect(screen, (0, 0, 0, 200), dialogue_box) # Pridaná jemná priehľadnosť
+                pygame.draw.rect(screen, (255, 255, 255), dialogue_box, 2) # Biely okraj pre eleganciu
+                
+                # 4. Text
+                text = npc.dialogue_lines[dialogue_index]
+                rendered_text = font.render(text, True, (255, 255, 255))
+                screen.blit(rendered_text, (50, screen_height - 120))
 
-            # Text
-            text = npc.dialogue_lines[dialogue_index]
-            rendered_text = font.render(text, True, (255,255,255))
-            screen.blit(rendered_text, (50, screen_height - 120))
+        if game_over:
+            # Šedý overlay
+            grey_overlay = pygame.Surface((screen_width, screen_height))
+            grey_overlay.set_alpha(180)  # priehľadnosť (0-255)
+            grey_overlay.fill((0, 0, 0))  # šedá farba
+            screen.blit(grey_overlay, (0, 0))
 
-        # 4. Vrstva: GUI a Fade (Vždy navrchu)
-        gui.draw_inventory()
+            # Text YOU DIED
+            death_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 100)
+            death_text = death_font.render("YOU DIED", True, (200, 0, 0))
+            text_rect = death_text.get_rect(center=(screen_width//2, screen_height//2))
+            screen.blit(death_text, text_rect)
+        
+        # attack vizuál
+        if attack_active and not game_over:
+            elapsed = pygame.time.get_ticks() - attack_start_time
+            progress = elapsed / attack_duration 
+
+            if progress >= 1:
+                attack_active = False
+            else:
+                direction_angles = {"right": 0, "left": 180, "up": 270, "down": 90}
+                base_angle = direction_angles.get(player.direction, 0)
+
+                swing_range = 120 
+                current_swing_angle = base_angle - (progress * swing_range - 60)
+
+                rotated_image = pygame.transform.rotate(sword_surf, -current_swing_angle)
+                
+                pivot_offset_vec = pygame.math.Vector2(sword_length / 2, 0)
+                rotated_pivot_offset = pivot_offset_vec.rotate(current_swing_angle)
+                
+                new_rect_center = pygame.math.Vector2(player.rect.center) + rotated_pivot_offset
+                sword_rect = rotated_image.get_rect(center=new_rect_center)
+
+                screen.blit(rotated_image, camera.apply(sword_rect))
+
+                for enemy in game_data["enemies"]:
+                    if sword_rect.colliderect(enemy["rect"]):
+                        if enemy not in enemies_hit_this_swing:
+                            enemy["health"] -= 15
+                            enemies_hit_this_swing.append(enemy)
+                            dx = enemy["rect"].centerx - player.rect.centerx
+                            dy = enemy["rect"].centery - player.rect.centery
+                            dist = math.hypot(dx, dy)
+                            if dist != 0:
+                                enemy["knockback_x"] = (dx / dist) * 20
+                                enemy["knockback_y"] = (dy / dist) * 20
+        
+        # NIGHT MODE
+        if game_data["night_mode"] and not game_over:
+            # 1. Overlay a svetelný kruh sledujúci hráča
+            overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 230))
+            
+            # Výpočet pozície hráča na obrazovke
+            player_screen_pos = camera.apply(player.rect).center
+            pygame.draw.circle(overlay, (0, 0, 0, 0), player_screen_pos, 180)
+            screen.blit(overlay, (0, 0))
+
+            # 2. Odpočítavanie noci
+            game_data["night_timer"] -= 1
+            
+            # Zobrazenie textu "NASTALA NOC"
+            if game_data["night_text_timer"] > 0:
+                night_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 70)
+                night_text = night_font.render("THE NIGHT HAS COME", True, (255, 255, 255))
+                screen.blit(night_text, night_text.get_rect(center=(screen_width // 2, 100)))
+                game_data["night_text_timer"] -= 1
+
+            # Zobrazenie zostávajúceho času noci
+            timer_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 40)
+            seconds_left = max(0, game_data["night_timer"] // 60)
+            timer_text = timer_font.render(f"The night will end in: {seconds_left}s", True, (255, 255, 255))
+            screen.blit(timer_text, (screen_width // 2 -250, screen_height // 2 +200))
+
+            # 3. Koniec noci - upratovanie
+            if game_data["night_timer"] <= 0:
+                game_data["night_mode"] = False
+                game_data["enemies"].clear()  # Zabije všetkých duchov
+                for pit in game_data["grave_pits"]: 
+                    pit['state'] = 'closed'  # Zatvorí jamy
+
+        gui.draw()
         fade.draw()
         
         pygame.display.flip()

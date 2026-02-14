@@ -7,55 +7,71 @@ class Player:
         self.base_speed = 5
         self.speed = self.base_speed
         
-        # --- GRAFIKA (CELÁ POSTAVA) ---
+        # --- GRAFIKA ---
         self.image_width = width
         self.image_height = height
         
-        # --- HITBOX (PREČO JE TAKÝTO?) ---
-        # 1. Výška 20px: Iba chodidlá, aby si mohol chodiť "za" stenami.
-        # 2. Šírka -12px: Hitbox je užší ako obrázok. 
-        #    Dôvod: Aby sa ti "ramená" nezasekávali o rohy stien. Je to oveľa plynulejšie.
+        # --- HITBOX ---
         self.hitbox_w = width - 12
         self.hitbox_h = 20
-        
-        # Centrovanie hitboxu na spodok postavy
-        # X: posunieme ho o polovicu rozdielu šírok, aby bol v strede
-        # Y: posunieme ho úplne dole
         start_rect_x = x + (self.image_width - self.hitbox_w) // 2
         start_rect_y = y + (self.image_height - self.hitbox_h)
         
         self.rect = pygame.Rect(start_rect_x, start_rect_y, self.hitbox_w, self.hitbox_h)
         self.color = color
         self.money = 0
+        self.health = 100
+        self.last_damage_time = 0
 
-        # --- NAČÍTANIE OBRÁZKOV ---
-        try:
-            self.images = {
-                "down": pygame.image.load("Resources/Hugo/Hugo_Front1.png").convert_alpha(),
-                "up": pygame.image.load("Resources/Hugo/Hugo_Back1.png").convert_alpha(),
-                "left": pygame.image.load("Resources/Hugo/Hugo_Left1.png").convert_alpha(),
-                "right": pygame.image.load("Resources/Hugo/Hugo_Right1.png").convert_alpha()
-            }
-        except:
-            # Fallback ak nenájde obrázky (červený obdĺžnik)
-            surf = pygame.Surface((width, height))
-            surf.fill(color)
-            self.images = {"down": surf, "up": surf, "left": surf, "right": surf}
-
-        # Škálovanie obrázkov
-        for key in self.images:
-            self.images[key] = pygame.transform.scale(self.images[key], (width, height))
-
+        # --- ANIMÁCIE ---
         self.direction = "down"
-        self.current_image = self.images[self.direction]
+        self.frame_index = 0
+        self.animation_timer = 0
+        self.animation_speed = 0.15 
+        self.is_moving = False
+
+        self.animations = {
+            "up": [],
+            "down": [],
+            "left": [],
+            "right": []
+        }
+
+        def load_img(path):
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                return pygame.transform.scale(img, (self.image_width, self.image_height))
+            except:
+                surf = pygame.Surface((self.image_width, self.image_height))
+                surf.fill(self.color)
+                return surf
+
+        # Načítanie Right animácií (1=stojí, 2-5=pohyb)
+        # Použil som range(1, 6) podľa tvojho kódu (teda 5 obrázkov celkovo)
+        for i in range(1, 6):
+            img_right = load_img(f"Resources/Hugo/Hugo_Right{i}.png")
+            self.animations["right"].append(img_right)
+            
+            # AUTOMATICKÉ VRÁTENIE (FLIP) PRE LEFT
+            img_left = pygame.transform.flip(img_right, True, False)
+            self.animations["left"].append(img_left)
+
+            img_back = load_img(f"Resources/Hugo/Hugo_Back{i}.png")
+            self.animations["up"].append(img_back)
+
+            img_front = load_img(f"Resources/Hugo/Hugo_Front{i}.png")
+            self.animations["down"].append(img_front)
+        
+        # Ostatné smery
+
+        self.current_image = self.animations[self.direction][0]
 
     def handle_keys_with_collision(self, screen_width, screen_height, collidable_walls):
         keys = pygame.key.get_pressed()
-        
         move_x = 0
         move_y = 0
+        self.is_moving = False
 
-        # Vstupy
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             move_x = -1
             self.direction = "left"
@@ -70,46 +86,48 @@ class Player:
             move_y = 1
             self.direction = "down"
 
-        # --- NORMALIZÁCIA RÝCHLOSTI (Aby po uhlopriečke nešiel rýchlejšie) ---
-        if move_x != 0 and move_y != 0:
-            # Ak ideš šikmo, vydelíme rýchlosť odmocninou z 2 (~1.414)
-            # Matematicky: vector length = 1
-            move_x *= 0.7071
-            move_y *= 0.7071
+        if move_x != 0 or move_y != 0:
+            self.is_moving = True
+            if move_x != 0 and move_y != 0:
+                move_x *= 0.7071
+                move_y *= 0.7071
 
-        # Aplikovanie rýchlosti
-        dx = move_x * self.speed
-        dy = move_y * self.speed
-
-        # --- KOLÍZIE X ---
+        dx, dy = move_x * self.speed, move_y * self.speed
+        
         self.rect.x += dx
         for wall in collidable_walls:
             if self.rect.colliderect(wall):
                 if dx > 0: self.rect.right = wall.left
                 if dx < 0: self.rect.left = wall.right
 
-        # --- KOLÍZIE Y ---
         self.rect.y += dy
         for wall in collidable_walls:
             if self.rect.colliderect(wall):
                 if dy > 0: self.rect.bottom = wall.top
                 if dy < 0: self.rect.top = wall.bottom
 
-        # Aktualizácia spritu
-        if move_x != 0 or move_y != 0:
-            self.current_image = self.images[self.direction]
+        # --- UNIVERZÁLNA LOGIKA ANIMÁCIE ---
+        if self.is_moving:
+            # Kontrolujeme, či pre aktuálny smer máme dosť obrázkov na animáciu
+            if len(self.animations[self.direction]) > 1:
+                self.animation_timer += self.animation_speed
+                if self.animation_timer >= 1:
+                    self.animation_timer = 0
+                    self.frame_index += 1
+                    # Ak máš 5 obrázkov, indexy sú 0,1,2,3,4. 
+                    # Index 0 je "stojí", takže pohyb cyklíme od 1 po 4.
+                    if self.frame_index >= len(self.animations[self.direction]):
+                        self.frame_index = 1
+                self.current_image = self.animations[self.direction][self.frame_index]
+            else:
+                self.current_image = self.animations[self.direction][0]
+        else:
+            # Stojíme -> prvý obrázok
+            self.frame_index = 0
+            self.current_image = self.animations[self.direction][0]
 
     def draw(self, surface, camera):
-        # 1. Kde je hitbox na obrazovke?
         rect_on_screen = camera.apply(self.rect)
-        
-        # 2. Vypočítame, kde má byť OBRÁZOK relatívne k hitboxu
-        # X: Posunúť doľava o rozdiel šírok / 2
         draw_x = rect_on_screen.x - (self.image_width - self.hitbox_w) // 2
-        # Y: Posunúť hore o rozdiel výšok
         draw_y = rect_on_screen.y - (self.image_height - self.hitbox_h)
-        
         surface.blit(self.current_image, (draw_x, draw_y))
-        
-        # DEBUG: Odkomentuj tento riadok, ak chceš vidieť hitbox (červený obdĺžnik pri nohách)
-        # pygame.draw.rect(surface, (255, 0, 0), rect_on_screen, 1)
