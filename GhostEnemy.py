@@ -3,7 +3,7 @@ import random
 import math
 
 # ==========================================
-# 1. GHOST ENEMY (Duch)
+# 1. GHOST ENEMY (Duch) - Vyvážený
 # ==========================================
 class GhostEnemy:
     def __init__(self, x, y, image):
@@ -195,7 +195,7 @@ class GhostEnemy:
                 self.state_timer = 18 
                 self.dash_cooldown = random.randint(180, 360)
                 
-        elif self.state == "DASH":
+        elif self.state =="DASH":
             self.state_timer -= 1
             move_vec = self.dash_dir * (self.base_speed * 6.5) 
             self.spawn_particles(5, self.get_current_color(current_time), speed_mult=0.3)
@@ -313,7 +313,6 @@ class GhostEnemy:
 
     @classmethod
     def spawn_horde(cls, player, game_data, ghost_img, count=5):
-        """Metóda volaná z main.py pri štarte noci"""
         if game_data["current_map"] == "cmitermap":
             for _ in range(count):
                 dist_x = random.randint(200, 400) * random.choice([-1, 1])
@@ -321,7 +320,6 @@ class GhostEnemy:
                 spawn_x = player.rect.x + dist_x
                 spawn_y = player.rect.y + dist_y
                 
-                # Náhodne vyberie jeden z troch typov
                 enemy_type = random.choice(["ghost", "archer", "ghoul"])
                 if enemy_type == "ghost":
                     game_data["enemies"].append(cls(spawn_x, spawn_y, ghost_img))
@@ -337,13 +335,11 @@ class Arrow:
     def __init__(self, x, y, target_pos, damage=15):
         self.pos = pygame.math.Vector2(x, y)
         self.rect = pygame.Rect(x, y, 8, 8)
-        
         direction = target_pos - self.pos
         if direction.length() > 0:
             self.vel = direction.normalize() * 9 
         else:
             self.vel = pygame.math.Vector2(0, 0)
-            
         self.damage = damage
         self.lifetime = 120 
         
@@ -359,7 +355,7 @@ class Arrow:
         pygame.draw.circle(screen, (255, 255, 255), screen_pos, 3)
 
 # ==========================================
-# 3. SKELETON ARCHER (Ostreľovač na diaľku)
+# 3. SKELETON ARCHER (Ostreľovač) - Málo HP
 # ==========================================
 class SkeletonArcher:
     def __init__(self, x, y, image):
@@ -368,7 +364,7 @@ class SkeletonArcher:
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.math.Vector2(self.rect.center)
         
-        self.max_health = 40 
+        self.max_health = 35 # Znížené HP pre ostreľovača
         self.health = self.max_health
         self.speed = 2.5
         self.damage = 15
@@ -380,7 +376,6 @@ class SkeletonArcher:
         self.is_dead = False
         self.knockback = pygame.math.Vector2(0, 0)
         
-        # Animácie umierania
         self.alpha = 255
         self.death_scale = 1.0
         self.particles = []
@@ -389,86 +384,56 @@ class SkeletonArcher:
         if self.state == "DYING": return
         self.health -= amount
         self.knockback = knockback_force
-        
-        # Zelené častice pri zásahu (ako ektoplazma kostlivca)
         self.spawn_particles(15, (0, 200, 0), speed_mult=2.0)
-        
-        if self.state == "AIMING":
-            self.state = "KITING" 
+        if self.state == "AIMING": self.state = "KITING" 
         if self.health <= 0:
             self.state = "DYING"
             self.spawn_particles(40, (255, 255, 255), speed_mult=4.0)
 
     def spawn_particles(self, amount, color, speed_mult=1.0):
         for _ in range(amount):
-            px = self.pos.x + random.uniform(-10, 10)
-            py = self.pos.y + random.uniform(-10, 10)
-            vx = random.uniform(-1.5, 1.5) * speed_mult
-            vy = random.uniform(-1.5, 1.5) * speed_mult
-            size = random.uniform(2, 4)
-            life = random.randint(20, 40)
-            self.particles.append([px, py, vx, vy, size, life, life, color, 255])
+            px, py = self.pos.x + random.uniform(-10, 10), self.pos.y + random.uniform(-10, 10)
+            vx, vy = random.uniform(-1.5, 1.5) * speed_mult, random.uniform(-1.5, 1.5) * speed_mult
+            self.particles.append([px, py, vx, vy, random.uniform(2, 4), random.randint(20, 40), 40, color, 255])
 
     def update(self, player, game_data):
-        # Update častíc
         for p in self.particles[:]:
-            p[0] += p[2]
-            p[1] += p[3]
-            p[6] -= 1
+            p[0] += p[2]; p[1] += p[3]; p[6] -= 1
             if p[6] <= 0: self.particles.remove(p)
 
         if self.state == "DYING":
-            self.alpha -= 8
-            self.death_scale -= 0.03
-            self.pos.y -= 2.0
+            self.alpha -= 8; self.death_scale -= 0.03; self.pos.y -= 2.0
             if self.alpha <= 0: self.is_dead = True
             return
 
-        if self.attack_cooldown > 0 and self.state == "KITING":
-            self.attack_cooldown -= 1
-
         target = pygame.math.Vector2(player.rect.center)
-        dist_to_player = self.pos.distance_to(target)
+        dist = self.pos.distance_to(target)
         move_vec = pygame.math.Vector2(0, 0)
 
         if self.state == "KITING":
-            if dist_to_player < 140:
-                move_vec = (self.pos - target).normalize() * self.speed
-            elif dist_to_player > 300:
-                move_vec = (target - self.pos).normalize() * self.speed
+            if dist < 140: move_vec = (self.pos - target).normalize() * self.speed
+            elif dist > 300: move_vec = (target - self.pos).normalize() * self.speed
             else:
-                if self.attack_cooldown <= 0:
-                    self.state = "AIMING"
-                    self.aim_timer = 40 
-
+                if self.attack_cooldown <= 0: self.state = "AIMING"; self.aim_timer = 40; self.attack_cooldown = random.randint(120, 180)
+                else: self.attack_cooldown -= 1
         elif self.state == "AIMING":
-            self.target_aim_pos = target 
-            self.aim_timer -= 1
+            self.target_aim_pos = target; self.aim_timer -= 1
             if self.aim_timer <= 0:
-                new_arrow = Arrow(self.pos.x, self.pos.y, target, self.damage)
-                if "arrows" not in game_data: game_data["arrows"] = []
-                game_data["arrows"].append(new_arrow)
-                
+                game_data.setdefault("arrows", []).append(Arrow(self.pos.x, self.pos.y, target, self.damage))
                 self.state = "KITING"
-                self.attack_cooldown = random.randint(120, 180)
 
-        self.pos += move_vec + self.knockback
-        self.knockback *= 0.8
-        if self.knockback.length() < 0.5: self.knockback = pygame.math.Vector2(0, 0)
+        self.pos += move_vec + self.knockback; self.knockback *= 0.8
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
     def draw(self, screen, camera):
-        # Kreslenie častíc
         for p in self.particles:
             screen_pos = camera.apply(pygame.Rect(p[0], p[1], 1, 1))
             pygame.draw.circle(screen, p[7], screen_pos.center, int(p[4]))
 
         draw_image = self.image.copy()
         if self.state == "DYING":
-            w = int(draw_image.get_width() * self.death_scale)
-            h = int(draw_image.get_height() * self.death_scale)
-            if w > 0 and h > 0:
-                draw_image = pygame.transform.scale(draw_image, (w, h))
+            w, h = int(draw_image.get_width() * self.death_scale), int(draw_image.get_height() * self.death_scale)
+            if w > 0 and h > 0: draw_image = pygame.transform.scale(draw_image, (w, h))
         
         draw_image.set_alpha(self.alpha)
         draw_rect = draw_image.get_rect(center=self.rect.center)
@@ -476,15 +441,19 @@ class SkeletonArcher:
         screen.blit(draw_image, draw_pos)
 
         if self.state == "AIMING" and self.target_aim_pos:
-            start_pos = draw_pos.center
-            end_pos = camera.apply(pygame.Rect(self.target_aim_pos.x, self.target_aim_pos.y, 1, 1)).center
             laser_surf = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-            pulse = abs(math.sin(pygame.time.get_ticks() * 0.02)) * 150
-            pygame.draw.line(laser_surf, (255, 0, 0, int(50 + pulse)), start_pos, end_pos, 2)
+            pygame.draw.line(laser_surf, (255, 0, 0, int(50 + abs(math.sin(pygame.time.get_ticks() * 0.02)) * 150)), draw_pos.center, camera.apply(pygame.Rect(self.target_aim_pos.x, self.target_aim_pos.y, 1, 1)).center, 2)
             screen.blit(laser_surf, (0, 0))
 
+        if self.health < self.max_health and self.state != "DYING":
+            bar_w, bar_h = 36, 4
+            ratio = max(0, self.health / self.max_health)
+            bx, by = draw_pos.centerx - bar_w // 2, draw_pos.y - 15
+            pygame.draw.rect(screen, (0, 0, 0, 180), (bx-1, by-1, bar_w+2, bar_h+2), border_radius=2) 
+            pygame.draw.rect(screen, (0, 255, 0), (bx, by, bar_w * ratio, bar_h), border_radius=2)
+
 # ==========================================
-# 4. GHOUL TANK (Ťažký útočník na blízko)
+# 4. GHOUL TANK (Väčší, Pomalý, Veľa HP)
 # ==========================================
 class GhoulTank:
     def __init__(self, x, y, image):
@@ -494,7 +463,7 @@ class GhoulTank:
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.math.Vector2(self.rect.center)
         
-        self.max_health = 180 
+        self.max_health = 180 # VEĽA HP PRE TANKA
         self.health = self.max_health
         self.speed = 1.0 
         self.damage = 25 
@@ -504,7 +473,6 @@ class GhoulTank:
         self.is_dead = False
         self.knockback = pygame.math.Vector2(0, 0)
         
-        # Animácie umierania
         self.alpha = 255
         self.death_scale = 1.0
         self.particles = []
@@ -513,63 +481,44 @@ class GhoulTank:
         if self.state == "DYING": return
         self.health -= amount
         self.knockback = knockback_force * 0.1 
-        
-        # Červené častice krvi pri zásahu
         self.spawn_particles(10, (150, 0, 0), speed_mult=1.5)
-        
         if self.health <= 0:
             self.state = "DYING"
             self.spawn_particles(60, (100, 100, 100), speed_mult=3.0, size_mult=2.0)
 
     def spawn_particles(self, amount, color, speed_mult=1.0, size_mult=1.0):
         for _ in range(amount):
-            px = self.pos.x + random.uniform(-20, 20)
-            py = self.pos.y + random.uniform(-20, 20)
-            vx = random.uniform(-1.0, 1.0) * speed_mult
-            vy = random.uniform(-1.0, 1.0) * speed_mult
-            size = random.uniform(3, 6) * size_mult
-            life = random.randint(30, 60)
-            self.particles.append([px, py, vx, vy, size, life, life, color, 255])
+            px, py = self.pos.x + random.uniform(-20, 20), self.pos.y + random.uniform(-20, 20)
+            vx, vy = random.uniform(-1.0, 1.0) * speed_mult, random.uniform(-1.0, 1.0) * speed_mult
+            self.particles.append([px, py, vx, vy, random.uniform(3, 6) * size_mult, 60, 60, color, 255])
 
     def update(self, player, game_data):
         for p in self.particles[:]:
-            p[0] += p[2]
-            p[1] += p[3]
-            p[6] -= 1
+            p[0] += p[2]; p[1] += p[3]; p[6] -= 1
             if p[6] <= 0: self.particles.remove(p)
 
         if self.state == "DYING":
-            self.alpha -= 5
-            self.death_scale -= 0.02
-            self.pos.y -= 1.0
+            self.alpha -= 5; self.death_scale -= 0.02; self.pos.y -= 1.0
             if self.alpha <= 0: self.is_dead = True
             return
 
         target = pygame.math.Vector2(player.rect.center)
-        dist_to_player = self.pos.distance_to(target)
+        dist = self.pos.distance_to(target)
         move_vec = pygame.math.Vector2(0, 0)
 
         if self.state == "CHASING":
-            if dist_to_player > 0:
-                move_vec = (target - self.pos).normalize() * self.speed
-            if dist_to_player < 70:
-                self.state = "SMASH_WINDUP"
-                self.smash_timer = 50 
-
+            if dist > 0: move_vec = (target - self.pos).normalize() * self.speed
+            if dist < 70: self.state = "SMASH_WINDUP"; self.smash_timer = 50 
         elif self.state == "SMASH_WINDUP":
             self.smash_timer -= 1
             if self.smash_timer <= 0:
-                if dist_to_player < 90:
-                    if not hasattr(player, 'last_damage_time'): player.last_damage_time = 0
+                if dist < 90:
                     current_time = pygame.time.get_ticks()
-                    if current_time - player.last_damage_time >= 500:
-                        player.health -= self.damage
-                        player.last_damage_time = current_time
+                    if current_time - getattr(player, 'last_damage_time', 0) >= 500:
+                        player.health -= self.damage; player.last_damage_time = current_time
                 self.state = "CHASING"
 
-        self.pos += move_vec + self.knockback
-        self.knockback *= 0.85
-        if self.knockback.length() < 0.5: self.knockback = pygame.math.Vector2(0, 0)
+        self.pos += move_vec + self.knockback; self.knockback *= 0.85
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
     def draw(self, screen, camera):
@@ -579,8 +528,7 @@ class GhoulTank:
 
         draw_image = self.image.copy()
         if self.state == "DYING":
-            w = int(draw_image.get_width() * self.death_scale)
-            h = int(draw_image.get_height() * self.death_scale)
+            w, h = int(draw_image.get_width() * self.death_scale), int(draw_image.get_height() * self.death_scale)
             if w > 0 and h > 0: draw_image = pygame.transform.scale(draw_image, (w, h))
         
         draw_image.set_alpha(self.alpha)
@@ -588,16 +536,20 @@ class GhoulTank:
         draw_pos = camera.apply(draw_rect)
 
         if self.state == "SMASH_WINDUP":
-            shake = random.randint(-4, 4)
-            draw_pos = draw_pos.move(shake, shake)
-            tinted_img = draw_image.copy()
-            tinted_img.fill((150, 0, 0, 100), special_flags=pygame.BLEND_RGBA_ADD)
+            draw_pos = draw_pos.move(random.randint(-4, 4), random.randint(-4, 4))
+            tinted_img = draw_image.copy(); tinted_img.fill((150, 0, 0, 100), special_flags=pygame.BLEND_RGBA_ADD)
             screen.blit(tinted_img, draw_pos)
-        else:
-            screen.blit(draw_image, draw_pos)
+        else: screen.blit(draw_image, draw_pos)
+
+        if self.health < self.max_health and self.state != "DYING":
+            bar_w, bar_h = 50, 6
+            ratio = max(0, self.health / self.max_health)
+            bx, by = draw_pos.centerx - bar_w // 2, draw_pos.y - 15
+            pygame.draw.rect(screen, (0, 0, 0, 180), (bx-1, by-1, bar_w+2, bar_h+2), border_radius=2) 
+            pygame.draw.rect(screen, (200, 0, 0), (bx, by, bar_w * ratio, bar_h), border_radius=2)
 
 # ==========================================
-# 5. SHADOW WRAITH (Rýchly, otravný)
+# 5. SHADOW WRAITH (Rýchly, Otravný) - Málo HP
 # ==========================================
 class ShadowWraith:
     def __init__(self, x, y, image):
@@ -607,7 +559,7 @@ class ShadowWraith:
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.math.Vector2(self.rect.center)
         
-        self.max_health = 20 
+        self.max_health = 25 # MÁLO HP PRE RÝCHLEHO ENEMYHO
         self.health = self.max_health
         self.speed = random.uniform(3.5, 4.5) 
         self.damage = 10
@@ -620,88 +572,58 @@ class ShadowWraith:
         self.action_timer = random.randint(60, 150)
         self.is_dead = False
         self.knockback = pygame.math.Vector2(0, 0)
-        
-        # Animácie umierania
-        self.alpha = 160
-        self.death_scale = 1.0
-        self.particles = []
+        self.alpha, self.death_scale, self.particles = 160, 1.0, []
 
     def take_damage(self, amount, knockback_force):
         if self.state == "DYING": return
         self.health -= amount
         self.knockback = knockback_force * 1.5 
         self.spawn_particles(12, (100, 0, 200), speed_mult=3.0)
-        
-        if self.health <= 0:
-            self.state = "DYING"
-            self.spawn_particles(50, (180, 50, 255), speed_mult=5.0)
+        if self.health <= 0: self.state = "DYING"; self.spawn_particles(50, (180, 50, 255), speed_mult=5.0)
 
     def spawn_particles(self, amount, color, speed_mult=1.0):
         for _ in range(amount):
-            px = self.pos.x + random.uniform(-10, 10)
-            py = self.pos.y + random.uniform(-10, 10)
-            vx = random.uniform(-2.0, 2.0) * speed_mult
-            vy = random.uniform(-2.0, 2.0) * speed_mult
-            size = random.uniform(2, 4)
-            life = random.randint(15, 30)
-            self.particles.append([px, py, vx, vy, size, life, life, color, 255])
+            px, py = self.pos.x + random.uniform(-10, 10), self.pos.y + random.uniform(-10, 10)
+            vx, vy = random.uniform(-2.0, 2.0) * speed_mult, random.uniform(-2.0, 2.0) * speed_mult
+            self.particles.append([px, py, vx, vy, random.uniform(2, 4), 30, 30, color, 255])
 
     def update(self, player, game_data):
         for p in self.particles[:]:
-            p[0] += p[2]
-            p[1] += p[3]
-            p[6] -= 1
+            p[0] += p[2]; p[1] += p[3]; p[6] -= 1
             if p[6] <= 0: self.particles.remove(p)
 
         if self.state == "DYING":
-            self.alpha -= 10
-            self.death_scale -= 0.04
+            self.alpha -= 10; self.death_scale -= 0.04
             if self.alpha <= 0: self.is_dead = True
             return
 
         target = pygame.math.Vector2(player.rect.center)
-        dist_to_player = self.pos.distance_to(target)
+        dist = self.pos.distance_to(target)
         move_vec = pygame.math.Vector2(0, 0)
 
         if self.state == "ORBITING":
             self.orbit_angle += 0.08 * self.orbit_direction
-            desired_pos = target + pygame.math.Vector2(math.cos(self.orbit_angle), math.sin(self.orbit_angle)) * self.orbit_distance
-            dir_to_desired = desired_pos - self.pos
-            if dir_to_desired.length() > 0:
-                move_vec = dir_to_desired.normalize() * self.speed
+            desired = target + pygame.math.Vector2(math.cos(self.orbit_angle), math.sin(self.orbit_angle)) * self.orbit_distance
+            if (desired - self.pos).length() > 0: move_vec = (desired - self.pos).normalize() * self.speed
             self.action_timer -= 1
-            if self.action_timer <= 0:
-                self.state = "STRIKE"
-                self.action_timer = 20
+            if self.action_timer <= 0: self.state = "STRIKE"; self.action_timer = 20
 
         elif self.state == "STRIKE":
             self.action_timer -= 1
-            if dist_to_player > 0:
-                move_vec = (target - self.pos).normalize() * (self.speed * 2.5) 
-            if dist_to_player < 35:
-                if not hasattr(player, 'last_damage_time'): player.last_damage_time = 0
+            if dist > 0: move_vec = (target - self.pos).normalize() * (self.speed * 2.5) 
+            if dist < 35:
                 current_time = pygame.time.get_ticks()
-                if current_time - player.last_damage_time >= 500:
-                    player.health -= self.damage
-                    player.last_damage_time = current_time
-                self.state = "FLEE"
-                self.action_timer = 40 
-            if self.action_timer <= 0:
-                self.state = "FLEE"
-                self.action_timer = 40
+                if current_time - getattr(player, 'last_damage_time', 0) >= 500:
+                    player.health -= self.damage; player.last_damage_time = current_time
+                self.state = "FLEE"; self.action_timer = 40 
+            if self.action_timer <= 0: self.state = "FLEE"
 
         elif self.state == "FLEE":
             self.action_timer -= 1
-            if dist_to_player > 0:
-                move_vec = (self.pos - target).normalize() * (self.speed * 1.5)
-            if self.action_timer <= 0:
-                self.state = "ORBITING"
-                self.orbit_direction *= -1
-                self.action_timer = random.randint(80, 160)
+            if dist > 0: move_vec = (self.pos - target).normalize() * (self.speed * 1.5)
+            if self.action_timer <= 0: self.state = "ORBITING"; self.orbit_direction *= -1; self.action_timer = random.randint(80, 160)
 
-        self.pos += move_vec + self.knockback
-        self.knockback *= 0.8
-        if self.knockback.length() < 0.5: self.knockback = pygame.math.Vector2(0, 0)
+        self.pos += move_vec + self.knockback; self.knockback *= 0.8
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
     def draw(self, screen, camera):
@@ -711,8 +633,7 @@ class ShadowWraith:
 
         draw_image = self.image.copy()
         if self.state == "DYING":
-            w = int(draw_image.get_width() * self.death_scale)
-            h = int(draw_image.get_height() * self.death_scale)
+            w, h = int(draw_image.get_width() * self.death_scale), int(draw_image.get_height() * self.death_scale)
             if w > 0 and h > 0: draw_image = pygame.transform.scale(draw_image, (w, h))
 
         draw_image.fill((80, 0, 150, 0), special_flags=pygame.BLEND_RGBA_ADD)
@@ -722,8 +643,14 @@ class ShadowWraith:
         
         if self.state in ["STRIKE", "FLEE"]:
             for i in range(1, 3):
-                trail_img = draw_image.copy()
-                trail_img.set_alpha(80 - (i * 30))
+                trail_img = draw_image.copy(); trail_img.set_alpha(80 - (i * 30))
                 screen.blit(trail_img, draw_pos.move(random.randint(-15,15), random.randint(-15,15)))
                 
         screen.blit(draw_image, draw_pos)
+
+        if self.health < self.max_health and self.state != "DYING":
+            bar_w, bar_h = 30, 3
+            ratio = max(0, self.health / self.max_health)
+            bx, by = draw_pos.centerx - bar_w // 2, draw_pos.y - 10
+            pygame.draw.rect(screen, (0, 0, 0, 150), (bx-1, by-1, bar_w+2, bar_h+2), border_radius=2) 
+            pygame.draw.rect(screen, (150, 0, 255), (bx, by, bar_w * ratio, bar_h), border_radius=2)
