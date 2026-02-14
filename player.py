@@ -19,7 +19,7 @@ class Player:
         
         self.rect = pygame.Rect(start_rect_x, start_rect_y, self.hitbox_w, self.hitbox_h)
         self.color = color
-        self.money = 0
+        self.money = 100
         self.health = 100
         self.last_damage_time = 0
 
