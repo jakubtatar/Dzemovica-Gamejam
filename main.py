@@ -86,7 +86,7 @@ def handle_music(is_night):
                         pygame.mixer.music.load(target_track)
                         pygame.mixer.music.play(-1)
                         if target_track == os.path.join("Resources", "Music", "Day.mp3"):
-                            pygame.mixer.music.set_volume(0.2)
+                            pygame.mixer.music.set_volume(0.01)
                         else:
                             pygame.mixer.music.set_volume(0.8)
                         current_track = target_track
