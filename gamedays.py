@@ -199,6 +199,6 @@ class Tuesday:
 
         # 4. KONIEC DŇA
         elif self.quest_step == 3:
-            if current_map == "house":
+            if current_map == "store":
                 self.day_finished = True
                 print("Tuesday finished!")

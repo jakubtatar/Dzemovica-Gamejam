@@ -152,6 +152,7 @@ def spustit_hru(screen):
         wall_LD_img = pygame.image.load(r"Resources/Walls/Wall_LD.png").convert_alpha()
 
         path_img = pygame.image.load(r"Resources/Floors/Floor_Path.png").convert_alpha()
+        floor_tiles_img = pygame.image.load(r"Resources/Floors/Floor_Tiles.png").convert_alpha()
 
         wheat_wall_img = pygame.image.load(r"Resources/Walls/Wall_Wheat.png").convert_alpha()
         wheat_wall_top_img = pygame.image.load(r"Resources/Walls/Wall_Wheat_Top.png").convert_alpha()
@@ -208,6 +209,7 @@ def spustit_hru(screen):
 
     water_gif = pygame.transform.scale(water_gif, (TILE_SIZE, TILE_SIZE))
     path_img = pygame.transform.scale(path_img, (TILE_SIZE, TILE_SIZE))
+    floor_tiles_img = pygame.transform.scale(floor_tiles_img, (TILE_SIZE, TILE_SIZE))
     
     grave_closed_img = pygame.transform.scale(grave_closed_img, (TILE_SIZE, TILE_SIZE * 2))
     grave_opened_img = pygame.transform.scale(grave_opened_img, (TILE_SIZE, TILE_SIZE * 2))
@@ -358,6 +360,11 @@ def spustit_hru(screen):
                 "target": "taverna",
                 "spawn": (400, 500)
             })
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(1600, 770, TILE_SIZE*3, TILE_SIZE * 3),
+                "target": "store",
+                "spawn": (200, 350)
+            })
             game_data["map_objects"].append({
                 "rect": pygame.Rect(900, -400, TILE_SIZE * 14, TILE_SIZE * 14),
                 "image": object_church_img,
@@ -477,6 +484,17 @@ def spustit_hru(screen):
                 "npc_ref": barman_npc
             })
 
+        elif map_name == "store":
+            w, c = maps_manager.load_map(r"Resources/Bitmaps/store.txt", TILE_SIZE)
+            game_data["walls"] = w
+            game_data["collidable_walls"] = c
+            player.rect.topleft = (100, 500)
+
+            game_data["change_map_squares"].append({
+                "rect": pygame.Rect(200, 400, TILE_SIZE*3, TILE_SIZE),
+                "target": "village",
+                "spawn": (1700, 1000)
+            })
         
 
 
@@ -747,7 +765,7 @@ def spustit_hru(screen):
                 wall_img, wall_front_img, wall_top_img,
                 wall_left_img, wall_right_img,
                 wall_RT_img, wall_LT_img, wall_RD_img, wall_LD_img,
-                wheat_wall_img, wheat_wall_top_img, water_gif, path_img
+                wheat_wall_img, wheat_wall_top_img, water_gif, path_img, floor_tiles_img
             )
 
         if game_data["visible_mapchangers"]:
