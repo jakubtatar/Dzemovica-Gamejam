@@ -17,6 +17,7 @@ from GhostEnemy import GhostEnemy
 
 from gamedays import Monday
 from gamedays import Tuesday
+from gamedays import Wednesday
 
 pygame.mixer.init()
 current_track = None
@@ -630,6 +631,7 @@ def spustit_hru(screen):
 
     monday_manager = Monday(screen, player, gui, game_data)
     tuesday_manager = Tuesday(screen, player, gui, game_data)
+    wednesday_manager = Wednesday(screen, player, gui, game_data)
 
     current_day_manager = monday_manager
     player.day = "Monday"
@@ -665,6 +667,13 @@ def spustit_hru(screen):
             if player.day == "Monday" and game_data.get("night_finished"):
                 player.day = "Tuesday"
                 current_day_manager = tuesday_manager
+                current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False
+
+            elif player.day == "Tuesday" and game_data.get("night_finished"):
+                player.day = "Wednesday"
+                current_day_manager = wednesday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
                 game_data["night_finished"] = False

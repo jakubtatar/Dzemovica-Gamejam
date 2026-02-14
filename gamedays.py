@@ -268,17 +268,22 @@ class Wednesday:
         self.gui.current_quest = {"title": title, "desc": desc}
 
     def start(self, setup_map_func):
-        # UTORKOVÝ QUEST SA NASTAVÍ AŽ TU
         self.intro_screen()
+        
+        # RESET DÁT, aby streda nezačínala s hotovými questami z utorka
+        self.game_data["salary_received"] = False
+        self.game_data["priest_contacted"] = False
+        self.game_data["night_finished"] = False
+        self.game_data["night_mode"] = False
+        
         self.update_gui_quest("Morning After", "Check the cemetery for any 'leftovers'.")
         
         setup_map_func("cmitermap")
         self.player.rect.topleft = (2700, 150)
-        self.game_data["gameday"] = 2
+        self.game_data["gameday"] = 3 
         self.player.day = "Wednesday"
-        self.game_data["night_mode"] = False
-        self.game_data["night_finished"] = False
         self.quest_step = 0
+        self.day_finished = False
 
     def update_quests(self):
         if self.day_finished:
