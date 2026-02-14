@@ -23,11 +23,12 @@ class GUI:
 
         self.shop_open = False
         self.shop_items = [
-            {"name": "Health Potion", "price": 50, "type": "consumable", "desc": "+20 HP"},
+            {"name": "Health Potion", "price": 100, "type": "consumable", "desc": "+20 HP"},
             {"name": "Steel Shovel", "price": 150, "type": "upgrade", "desc": "Dig faster"},
-            {"name": "Knight Sword", "price": 300, "type": "weapon", "desc": "More damage"},
-            {"name": "Stamina Boots", "price": 100, "type": "upgrade", "desc": "+20% Speed"},
-            {"name": "Money Bag", "price": 200, "type": "upgrade", "desc": "+10% Income"}
+            {"name": "Knight Sword", "price": 800, "type": "weapon", "desc": "More damage"},
+            {"name": "Stamina Boots", "price": 400, "type": "upgrade", "desc": "+20% Speed"},
+            {"name": "Money Bag", "price": 600, "type": "upgrade", "desc": "+10% Income"},
+            {"name": "Shotgun", "price": 1500, "type": "weapon", "desc": "More damage"},
         ]
         self.shop_selected_index = 0
             
@@ -98,11 +99,6 @@ class GUI:
             total_width = (self.max_slots * slot_size) + ((self.max_slots - 1) * gap)
             start_x = (self.screen.get_width() // 2) - (total_width // 2)
             start_y = self.screen.get_height() - slot_size - 25
-
-            # Pozadie pod celým inventárom (voliteľné, pridáva tmavý pás pre lepší kontrast)
-            # inv_panel = pygame.Surface((total_width + 20, slot_size + 20), pygame.SRCALPHA)
-            # inv_panel.fill((0, 0, 0, 100))
-            # self.screen.blit(inv_panel, (start_x - 10, start_y - 10))
 
             for i in range(self.max_slots):
                 rect = pygame.Rect(start_x + i * (slot_size + gap), start_y, slot_size, slot_size)
