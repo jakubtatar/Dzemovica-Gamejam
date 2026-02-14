@@ -372,9 +372,9 @@ def spustit_hru(screen):
                 "spawn": (400, 500)
             })
             game_data["change_map_squares"].append({
-                "rect": pygame.Rect(1600, 770, TILE_SIZE*3, TILE_SIZE * 3),
+                "rect": pygame.Rect(1620, 770, TILE_SIZE*2, TILE_SIZE * 3),
                 "target": "store",
-                "spawn": (200, 350)
+                "spawn": (300, 350)
             })
             game_data["map_objects"].append({
                 "rect": pygame.Rect(900, -400, TILE_SIZE * 14, TILE_SIZE * 14),
