@@ -13,7 +13,7 @@ from dialogue import Dialogue
 from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
-from GhostEnemy import GhostEnemy, SkeletonArcher, GhoulTank
+from GhostEnemy import GhostEnemy, SkeletonArcher, GhoulTank, Arrow, ShadowWraith
 
 from gamedays import Monday
 from gamedays import Tuesday
@@ -1071,34 +1071,40 @@ def spustit_hru(screen):
                             enemy.take_damage(15, knockback_vec)
                             enemies_hit_this_swing.append(enemy)
         
-        # NIGHT MODE
+      # NIGHT MODE
         if game_data["night_mode"] and not game_over:
             overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 230))
-            
             player_screen_pos = camera.apply(player.rect).center
             pygame.draw.circle(overlay, (0, 0, 0, 0), player_screen_pos, 180)
             screen.blit(overlay, (0, 0))
 
             game_data["night_timer"] -= 1
 
-            # --- NIGHT MODE SPAWN KAŽDÉ 2 SEKUNDY ---
-            if game_data["night_timer"] % 120 == 0:
-                dist_x = random.randint(400, 800) * random.choice([-1, 1])
-                dist_y = random.randint(400, 800) * random.choice([-1, 1])
+            if "spawn_cooldown" not in game_data:
+                game_data["spawn_cooldown"] = 0
+
+            game_data["spawn_cooldown"] -= 1
+
+            if game_data["spawn_cooldown"] <= 0 and game_data["night_timer"] > 0:
+                game_data["spawn_cooldown"] = random.randint(100, 100) 
                 
+                dist_x = random.randint(350, 500) * random.choice([-1, 1])
+                dist_y = random.randint(350, 500) * random.choice([-1, 1])
                 spawn_x = player.rect.x + dist_x
                 spawn_y = player.rect.y + dist_y
 
-                # Vyberieme náhodný typ - Ghost padá častejšie
-                enemy_type = random.choice(["ghost", "ghost", "archer", "ghoul"])
+                enemy_type = random.choice(["ghost", "ghost", "archer", "ghoul", "wraith", "wraith"])
                 
                 if enemy_type == "ghost":
                     game_data["enemies"].append(GhostEnemy(spawn_x, spawn_y, ghost_img))
                 elif enemy_type == "archer":
-                    game_data["enemies"].append(SkeletonArcher(spawn_x, spawn_y, ghost_img)) # Neskôr nahraď archer obrázkom
+                    game_data["enemies"].append(SkeletonArcher(spawn_x, spawn_y, ghost_img))
                 elif enemy_type == "ghoul":
-                    game_data["enemies"].append(GhoulTank(spawn_x, spawn_y, ghost_img)) # Neskôr nahraď ghoul obrázkom
+                    game_data["enemies"].append(GhoulTank(spawn_x, spawn_y, ghost_img))
+                elif enemy_type == "wraith":
+                    game_data["enemies"].append(ShadowWraith(spawn_x, spawn_y, ghost_img))
+
 
             if game_data["night_text_timer"] > 0:
                 night_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 70)
@@ -1106,14 +1112,17 @@ def spustit_hru(screen):
                 screen.blit(night_text, night_text.get_rect(center=(screen_width // 2, 100)))
                 game_data["night_text_timer"] -= 1
 
+            # 4. Časomerač na obrazovke
             timer_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 40)
             seconds_left = max(0, game_data["night_timer"] // 60)
-            timer_text = timer_font.render(f"The night will end in: {seconds_left}s", True, (255, 255, 255))
-            screen.blit(timer_text, (screen_width // 2 -250, screen_height // 2 +200))
+            timer_text = timer_font.render(f"Survival time: {seconds_left}s", True, (255, 255, 255))
+            screen.blit(timer_text, (screen_width // 2 - 250, screen_height // 2 + 200))
 
+            # 5. Koniec noci (keď timer dobehne na nulu)
             if game_data["night_timer"] <= 0:
                 game_data["night_mode"] = False
-                game_data["enemies"].clear()
+                game_data["enemies"].clear() # Vyčistíme nepriateľov, aby nezostali cez deň
+                if "arrows" in game_data: game_data["arrows"].clear() # Vyčistíme aj šípy
                 for pit in game_data["grave_pits"]: 
                     pit['state'] = 'closed'
 
