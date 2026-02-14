@@ -1,6 +1,7 @@
 import pygame
 import time
 
+
 class Monday:
     def __init__(self, screen, player, gui, game_data):
         self.screen = screen
@@ -117,7 +118,6 @@ class Monday:
                 self.update_gui_quest("Day Finished", "Monday is over. Rest now.")
                 self.next_day_transition()
 
-
 class Tuesday:
     def __init__(self, screen, player, gui, game_data):
         self.screen = screen
@@ -209,3 +209,35 @@ class Tuesday:
                         self.player.money += 200
                         self.quest_step = 4
                         self.update_gui_quest("New tools", "Buy something from store.")
+
+        #5. KOPANIE ĎALŠÍCH HROBOV
+        elif self.quest_step == 4:
+            # Tu môžeš zvýšiť číslo, napr. > 2, ak chceš aby kopal viac
+            if len(self.game_data.get("graves", [])) >= 6: 
+                self.quest_step = 5
+                self.update_gui_quest("Village Priest", "Go back to the village and talk to the Priest.") 
+
+        # 6. ROZHOVOR S KŇAZOM
+        elif self.quest_step == 5:
+            if npc and getattr(npc, 'name', '') == "Priest":
+                npc.set_dialogue([
+                    "PRIEST: I see you've started your work, Hugo.",
+                    "PRIEST: But the night is coming, and the dead are restless.",
+                    "PRIEST: You must survive the night shift. Good luck.",
+                    "PRIEST: Fate of the village is in your hands, protect us..."
+                ])
+                if is_talking:
+                    self.game_data["priest_contacted"] = True
+                
+                if not is_talking and self.game_data.get("priest_contacted"):
+                    self.quest_step = 6
+                    self.update_gui_quest("Night Shift", "Go to the cemetery and survive (Right click).")
+
+        # 7. PREŽITIE NOCI
+        elif self.quest_step == 6:
+            if self.game_data.get("night_mode") == False and self.game_data.get("night_finished") == True:
+                self.quest_step = 7
+                self.update_gui_quest("Day Finished", "Thuesday is over. Rest now.")
+                self.next_day_transition()
+        
+
