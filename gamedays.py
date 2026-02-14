@@ -358,7 +358,7 @@ class Wednesday:
         elif self.quest_step == 6:
             if self.game_data.get("night_mode") == False and self.game_data.get("night_finished") == True:
                 self.quest_step = 7
-                self.update_gui_quest("Day Finished", "Thuesday is over. Rest now.")
+                self.update_gui_quest("Day Finished", "Wendsday is over. Rest now.")
                 self.next_day_transition()
 
    
