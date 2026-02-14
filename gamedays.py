@@ -459,7 +459,7 @@ class Thursday:
                 if not is_talking and self.game_data.get("salary_received"):
                     self.player.money += 200
                     self.quest_step = 3
-
+                    self.update_gui_quest("Village Priest", "Go back to the village and talk to the Priest.")
 
         elif self.quest_step == 3:
             if npc and getattr(npc, 'name', '') == "Priest":
@@ -477,7 +477,7 @@ class Thursday:
                 
                 if not is_talking and self.game_data.get("priest_contacted"):
                     self.quest_step = 4
-                    self.update_gui_quest("Village Priest", "Go back to the village and talk to the Priest.")
+                    self.update_gui_quest("Go to work", "Go back to cemetery and dig graves.")
 
 
         #5. KOPANIE ĎALŠÍCH HROBOV
@@ -623,7 +623,7 @@ class Friday:
         #6. KOPANIE ĎALŠÍCH HROBOV
         elif self.quest_step == 6:
             total_graves = len(self.game_data.get("graves", []))
-            target = 1
+            target = 38
             if total_graves >= target: 
                 self.quest_step = 7
                 self.update_gui_quest("PREPARE", "Go to shop and prepare for Melitele.") 
@@ -639,6 +639,7 @@ class Friday:
                         "Welcome to Zabkas Hugo!",
                     ])
                     self.quest_step = 8
+                    self.update_gui_quest("FINAL FIGHT", "Go to the cemetery and survive night.") 
 
         # 8. PREŽITIE NOCI A BOSSFIGHT
         elif self.quest_step == 8:
