@@ -14,8 +14,10 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 
+
 from gamedays import Monday
 from gamedays import Tuesday
+from gamedays import Wednesday
 
 pygame.mixer.init()
 current_track = None
@@ -544,10 +546,11 @@ def spustit_hru(screen):
 
     monday_manager = Monday(screen, player, gui, game_data)
     tuesday_manager = Tuesday(screen, player, gui, game_data)
+    wednesday_manager = Wednesday(screen, player, gui, game_data)
 
     # Explicitne nastavíme Pondelok ako začiatok
-    current_day_manager = monday_manager
-    player.day = "Monday"
+    current_day_manager = tuesday_manager
+    player.day = "Tuesday"  # Nastavíme deň na Tuesday, aby sme mohli testovať jeho logiku
 
     # Resetujeme dôležité flagy v game_data, aby Tuesday nezačal predčasne
     game_data["night_mode"] = False
@@ -577,6 +580,7 @@ def spustit_hru(screen):
       # 1. Updateujeme questy aktuálneho dňa
         current_day_manager.update_quests()
 
+
         # 2. Kontrola, či deň skončil
         if current_day_manager.day_finished:
             if player.day == "Monday" and game_data.get("night_finished"): # PRIDANÁ PODMIENKA
@@ -584,7 +588,18 @@ def spustit_hru(screen):
                 current_day_manager = tuesday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
-                game_data["night_finished"] = False # Reset pre ďalšiu noc
+                game_data["night_finished"] = True # Reset pre ďalšiu noc
+                
+
+
+        # PRECHOD Z UTORKA NA STREDU
+        elif player.day == "Tuesday" and game_data.get("night_finished"):
+          player.day = "Wednesday"
+          current_day_manager = wednesday_manager
+          current_day_manager.start(setup_map)
+          game_data["night_mode"] = False
+          game_data["night_finished"] = True # Reset pre ďalšiu no
+          
         
         if game_data["map_switch_cooldown"] > 0:
             game_data["map_switch_cooldown"] -= 1
