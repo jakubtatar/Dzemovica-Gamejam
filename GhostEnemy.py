@@ -515,3 +515,119 @@ class GhoulTank:
             bx, by = draw_pos.centerx - bar_w // 2, draw_pos.y - 15
             pygame.draw.rect(screen, (0, 0, 0), (bx-1, by-1, bar_w+2, 6))
             pygame.draw.rect(screen, (200, 0, 0), (bx, by, bar_w * ratio, 4))
+
+# ==========================================
+# 5. SHADOW WRAITH (Rýchly, otravný, ťažký cieľ)
+# ==========================================
+class ShadowWraith:
+    def __init__(self, x, y, image):
+        self.original_image = image.copy()
+        
+        # Zmenšíme ho o 30%, aby sa ťažšie triafal
+        w, h = self.original_image.get_size()
+        self.image = pygame.transform.scale(self.original_image, (int(w*0.7), int(h*0.7)))
+        self.rect = self.image.get_rect(center=(x, y))
+        self.pos = pygame.math.Vector2(self.rect.center)
+        
+        self.max_health = 20 # Zomrie veľmi rýchlo
+        self.health = self.max_health
+        self.speed = random.uniform(3.5, 4.5) # Extrémne rýchly
+        self.damage = 10
+        
+        self.state = "ORBITING"
+        self.orbit_angle = random.uniform(0, math.pi * 2)
+        self.orbit_direction = random.choice([-1, 1]) # Točí sa buď v smere alebo proti smeru hodinových ručičiek
+        self.orbit_distance = random.randint(120, 160)
+        
+        self.action_timer = random.randint(60, 150)
+        self.is_dead = False
+        self.knockback = pygame.math.Vector2(0, 0)
+
+    def take_damage(self, amount, knockback_force):
+        self.health -= amount
+        # Keďže je to len "tieň", odletí po hite extrémne ďaleko
+        self.knockback = knockback_force * 1.5 
+        if self.health <= 0:
+            self.is_dead = True
+
+    def update(self, player, game_data):
+        target = pygame.math.Vector2(player.rect.center)
+        dist_to_player = self.pos.distance_to(target)
+        move_vec = pygame.math.Vector2(0, 0)
+
+        if self.state == "ORBITING":
+            # Rýchlo krúži okolo hráča
+            self.orbit_angle += 0.08 * self.orbit_direction
+            desired_pos = target + pygame.math.Vector2(math.cos(self.orbit_angle), math.sin(self.orbit_angle)) * self.orbit_distance
+            
+            dir_to_desired = desired_pos - self.pos
+            if dir_to_desired.length() > 0:
+                move_vec = dir_to_desired.normalize() * self.speed
+                
+            self.action_timer -= 1
+            if self.action_timer <= 0:
+                self.state = "STRIKE"
+                self.action_timer = 20 # Bleskový útok trvá len zlomok sekundy
+
+        elif self.state == "STRIKE":
+            # Vrhne sa priamo na hráča extrémnou rýchlosťou
+            self.action_timer -= 1
+            if dist_to_player > 0:
+                move_vec = (target - self.pos).normalize() * (self.speed * 2.5) 
+                
+            # Ak sa dotkne hráča
+            if dist_to_player < 35:
+                if not hasattr(player, 'last_damage_time'): player.last_damage_time = 0
+                current_time = pygame.time.get_ticks()
+                if current_time - player.last_damage_time >= 500:
+                    player.health -= self.damage
+                    player.last_damage_time = current_time
+                self.state = "FLEE"
+                self.action_timer = 40 # Uteká preč
+                
+            if self.action_timer <= 0:
+                self.state = "FLEE"
+                self.action_timer = 40
+
+        elif self.state == "FLEE":
+            # Uteká preč do tmy
+            self.action_timer -= 1
+            if dist_to_player > 0:
+                move_vec = (self.pos - target).normalize() * (self.speed * 1.5)
+                
+            if self.action_timer <= 0:
+                self.state = "ORBITING"
+                self.orbit_direction *= -1 # Začne krúžiť do opačnej strany, aby ťa zmiatol
+                self.orbit_distance = random.randint(120, 180)
+                self.action_timer = random.randint(80, 160)
+
+        # Aplikácia pohybu a obrovského knockbacku
+        self.pos += move_vec + self.knockback
+        self.knockback *= 0.8
+        if self.knockback.length() < 0.5: self.knockback = pygame.math.Vector2(0, 0)
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+
+    def draw(self, screen, camera):
+        draw_pos = camera.apply(self.rect)
+        
+        # Vizual - Temný fialový polopriesvitný prízrak
+        img = self.image.copy()
+        img.fill((80, 0, 150, 0), special_flags=pygame.BLEND_RGBA_ADD) # Fialový nádych
+        img.set_alpha(160) # Priesvitný, ťažšie viditeľný
+        
+        # Motion blur pri rýchlom útoku
+        if self.state in ["STRIKE", "FLEE"]:
+            for i in range(1, 3):
+                trail_img = img.copy()
+                trail_img.set_alpha(80 - (i * 30))
+                screen.blit(trail_img, draw_pos.move(random.randint(-15,15), random.randint(-15,15)))
+                
+        screen.blit(img, draw_pos)
+        
+        # Miniatúrny healthbar
+        if self.health < self.max_health:
+            bar_w = 30
+            ratio = max(0, self.health / self.max_health)
+            bx, by = draw_pos.centerx - bar_w // 2, draw_pos.y - 10
+            pygame.draw.rect(screen, (0, 0, 0, 150), (bx-1, by-1, bar_w+2, 4))
+            pygame.draw.rect(screen, (150, 0, 255), (bx, by, bar_w * ratio, 2))
