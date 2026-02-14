@@ -638,8 +638,8 @@ def spustit_hru(screen):
     thursday_manager = Thursday(screen, player, gui, game_data)
     friday_manager = Friday(screen, player, gui, game_data)
 
-    current_day_manager = wednesday_manager
-    player.day = "Wendesday" # Začíname v stredu, aby sme mohli testovať všetky dni
+    current_day_manager = monday_manager
+    player.day = "Monday" # Začíname v stredu, aby sme mohli testovať všetky dni
 
     game_data["night_mode"] = False
     game_data["night_finished"] = False
