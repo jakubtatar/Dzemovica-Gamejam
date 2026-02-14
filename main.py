@@ -174,7 +174,8 @@ def spustit_hru(screen):
         object_taverna_img = pygame.image.load(r"Resources/Objects/Object_Taverna.png").convert_alpha()
         object_bridge_img = pygame.image.load(r"Resources/Objects/Object_Bridge.png").convert_alpha()
         object_register_img = pygame.image.load(r"Resources/Objects/Object_Register.png").convert_alpha() 
-        object_fruit_img = pygame.image.load(r"Resources/Objects/Object_Fruit.png").convert_alpha() 
+        object_fruit_img = pygame.image.load(r"Resources/Objects/Object_Fruit.png").convert_alpha()
+        object_shelf_img = pygame.image.load(r"Resources/Objects/Object_Shelf.png").convert_alpha()  
 
         object_bottleshelf_img = pygame.image.load(r"Resources/Objects/Object_BottleShelf.png").convert_alpha()
         object_barchair_img = pygame.image.load(r"Resources/Objects/Object_BarChair.png").convert_alpha()
@@ -227,6 +228,7 @@ def spustit_hru(screen):
     object_bridge_img = pygame.transform.scale(object_bridge_img, (TILE_SIZE * 3, TILE_SIZE * 3))
     object_register_img  = pygame.transform.scale(object_register_img, (TILE_SIZE * 4, TILE_SIZE * 2))
     object_fruit_img  = pygame.transform.scale(object_fruit_img, (TILE_SIZE * 4, TILE_SIZE * 4))
+    object_shelf_img  = pygame.transform.scale(object_shelf_img, (TILE_SIZE * 3, TILE_SIZE * 4))
 
     #nabytok
     object_bottleshelf_img = pygame.transform.scale(object_bottleshelf_img, (TILE_SIZE *4, TILE_SIZE *4))
@@ -529,6 +531,16 @@ def spustit_hru(screen):
             game_data["map_objects"].append({
                 "rect": pygame.Rect(50, 250, TILE_SIZE * 4, TILE_SIZE * 4),
                 "image": object_fruit_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(350, 0, TILE_SIZE * 3, TILE_SIZE * 4),
+                "image": object_shelf_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(350, 220, TILE_SIZE * 3, TILE_SIZE * 4),
+                "image": object_shelf_img,
                 "collidable": True
             })
         
