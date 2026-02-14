@@ -582,7 +582,7 @@ def spustit_hru(screen):
                 "rect": shopkeeper_npc.rect,
                 "image": shopkeeper__img,
                 "collidable": False,
-                "npc_ref": shopkeeper__img
+                "npc_ref": shopkeeper_npc
             })
             game_data["map_objects"].append({
                 "rect": pygame.Rect(50, 100, TILE_SIZE * 4, TILE_SIZE * 2),
@@ -725,10 +725,12 @@ def spustit_hru(screen):
                         
                         if player.money >= item["price"]:
                             if item["type"] == "consumable":
-                                # Okamžitý efekt (napr. potion)
-                                player.money -= item["price"]
-                                player.health = min(100, player.health + 20)
-                                print(f"Použité: {item['name']}")
+                                if len(gui.inventory) < gui.max_slots:
+                                        player.money -= item["price"]
+                                        gui.inventory.append(item["name"])
+                                        print(f"Kúpené: {item['name']}")
+                                else:
+                                    print("Inventár je plný!")
                             else:
                                 # Trvalé predmety (meče, lopaty) idú do inventára
                                 if item["name"] not in gui.inventory:
@@ -835,6 +837,14 @@ def spustit_hru(screen):
                                 print("Minihra zatvorená - neúspech.")
                         else:
                             print("Tu sa kopať nedá.")
+
+                    if selected_item == "Health Potion":
+                        if player.health < 100:
+                            player.health = min(player.health + 40, 100)
+                            print(f"Healed! Current health: {player.health}")
+                            gui.inventory.remove("Health Potion")
+                        else:
+                            print("Player health is full!")
 
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
                 elif (event.button == 3 and not game_over) and game_data["current_map"] == "cmitermap": 
