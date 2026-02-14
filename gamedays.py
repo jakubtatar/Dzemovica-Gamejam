@@ -193,9 +193,9 @@ class Tuesday:
                     self.game_data["salary_received"] = True
                 
                 if not is_talking and self.game_data.get("salary_received"):
-                    self.player.money += 100
+                    self.player.money += 200
                     self.quest_step = 3
-                    self.update_gui_quest("Rest", "Go home and prepare for Wednesday.")
+                    self.update_gui_quest("Explore", "Visit the local village store.")
 
         # 4. KONIEC DŇA
         elif self.quest_step == 3:
