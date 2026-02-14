@@ -420,6 +420,7 @@ def spustit_hru(screen):
                  priest_dialog_img)
 
             game_data["npc"] = priest_npc
+            priest_npc.map_id = "village"
 
             game_data["map_objects"].append({
                 "rect": priest_npc.rect,
@@ -543,6 +544,7 @@ def spustit_hru(screen):
                             barman_dialog_img)
             barman_npc.name = "Barman"
             game_data["npc"] = barman_npc
+            barman_npc.map_id = "taverna"
 
             game_data["map_objects"].append({
                 "rect": barman_npc.rect,
@@ -573,6 +575,7 @@ def spustit_hru(screen):
                             shopkeeper_dialog_img)
             shopkeeper_npc.name = "Shopkeeper"
             game_data["npc"] = shopkeeper_npc
+            shopkeeper_npc.map_id = "store"
 
             game_data["map_objects"].append({
                 "rect": shopkeeper_npc.rect,
@@ -921,11 +924,13 @@ def spustit_hru(screen):
 
         # --- NPC INTERACT TEXT ---
         npc = game_data.get("npc")
-        if npc and player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
-            interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
-            interact_text = interact_font.render("Press E", True, (255, 255, 0))
-            text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
-            screen.blit(interact_text, camera.apply(text_rect))
+        c_map = game_data.get("current_map")
+        if npc and getattr(npc, 'map_id', None) == c_map:
+                    if player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
+                        interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
+                        interact_text = interact_font.render("Press E", True, (255, 255, 0))
+                        text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
+                        screen.blit(interact_text, camera.apply(text_rect))
 
         if dialogue_active:
             npc = game_data.get("npc")
