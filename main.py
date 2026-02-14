@@ -18,6 +18,10 @@ from GhostEnemy import GhostEnemy, SkeletonArcher, GhoulTank
 from gamedays import Monday
 from gamedays import Tuesday
 from gamedays import Wednesday
+from gamedays import Thursday
+from gamedays import Friday
+from gamedays import Saturday
+from gamedays import Sunday
 
 pygame.mixer.init()
 current_track = None
@@ -633,6 +637,10 @@ def spustit_hru(screen):
     monday_manager = Monday(screen, player, gui, game_data)
     tuesday_manager = Tuesday(screen, player, gui, game_data)
     wednesday_manager = Wednesday(screen, player, gui, game_data)
+    thursday_manager = Thursday(screen, player, gui, game_data)
+    friday_manager = Friday(screen, player, gui, game_data)
+    saturday_manager = Saturday(screen, player, gui, game_data)
+    sunday_manager = Sunday(screen, player, gui, game_data)
 
     current_day_manager = monday_manager
     player.day = "Monday"
@@ -675,6 +683,34 @@ def spustit_hru(screen):
             elif player.day == "Tuesday" and game_data.get("night_finished"):
                 player.day = "Wednesday"
                 current_day_manager = wednesday_manager
+                current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False
+
+            elif player.day == "Wednesday" and game_data.get("night_finished"):
+                player.day = "Thursday"
+                current_day_manager = thursday_manager
+                current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False
+
+            elif player.day == "Thursday" and game_data.get("night_finished"):
+                player.day = "Friday"
+                current_day_manager = friday_manager
+                current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False
+
+            elif player.day == "Friday" and game_data.get("night_finished"):
+                player.day = "Saturday"
+                current_day_manager = saturday_manager
+                current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False
+
+            elif player.day == "Saturday" and game_data.get("night_finished"):
+                player.day = "Sunday"
+                current_day_manager = sunday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
                 game_data["night_finished"] = False
