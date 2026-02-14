@@ -10,7 +10,6 @@ class Monday:
         self.quest_step = 0
         self.day_finished = False
         self.quests = []
-        # TU už nevoláme update_gui_quest, aby sme neprepísali GUI predčasne
 
     def intro_screen(self):
         """Zobrazí nápis MONDAY cez celú obrazovku."""
@@ -31,8 +30,8 @@ class Monday:
         self.gui.current_quest = {"title": title, "desc": desc}
 
     def start(self, setup_map_func):
-        # QUESTY NASTAVUJEME AŽ TU
         self.intro_screen()
+        # 0. Štartovací quest
         self.update_gui_quest("Where am I?", "Talk to the barman.")
         
         setup_map_func("taverna")
@@ -43,9 +42,7 @@ class Monday:
         self.day_finished = False
 
     def next_day_transition(self):
-        """Prechod na Utorok."""
         self.day_finished = True
-        # Tu len povieme, že deň skončil, main.py sa postará o prepnutie manažéra
         print("Pondelok skončil, čakám na prepnutie v main.py")
 
     def update_quests(self):
@@ -60,9 +57,14 @@ class Monday:
         if self.quest_step == 0:
             if npc and getattr(npc, 'name', '') == "Barman":
                 npc.set_dialogue([
-                    "Hugo! Finally awake?",
-                    "You've been out for a while.",
-                    "The Priest was looking for you. Go to the cemetery."
+                    "BARMAN: Hugo! Finally awake?",
+                    "BARMAN: You've been out for a while.",
+                    "YOU: Yeah, I am alright, I just had a hard night.",
+                    "BARMAN: Well how is the life going, did you get that job?",
+                    "YOU: Yep, I was alone looking for this type of job. Oh wait...",
+                    "YOU: I need to hurry, I am going to be late!",
+                    "BARMAN: So, what are you waiting for?",
+                    "BARMAN: Grab your tools and get to work!",
                 ])
                 if is_talking:
                     self.game_data["barman_contacted"] = True
@@ -77,32 +79,42 @@ class Monday:
                 self.quest_step = 2
                 self.update_gui_quest("Grave Digger", "Dig at least one grave.")
 
-        # 3. VYKOPANIE HROBU
+        # 3. KONTROLA KVÓTY (Po prvom kopnutí)
         elif self.quest_step == 2:
+            # Ak hráč vykopal aspoň jeden hrob
             if len(self.game_data.get("graves", [])) > 0:
                 self.quest_step = 3
+                # Hráč dostane info, že má kopať ďalej (alebo že má splnené)
+                self.update_gui_quest("More digging", "Check the grave orders and complete the quota.")
+
+        # 4. SPLNENIE KVÓTY -> ÍSŤ ZA KŇAZOM
+        elif self.quest_step == 3:
+            # Tu môžeš zvýšiť číslo, napr. > 2, ak chceš aby kopal viac
+            if len(self.game_data.get("graves", [])) >= 3: 
+                self.quest_step = 4
                 self.update_gui_quest("Village Priest", "Go back to the village and talk to the Priest.")
 
-        # 4. ROZHOVOR S KŇAZOM
-        elif self.quest_step == 3:
+        # 5. ROZHOVOR S KŇAZOM
+        elif self.quest_step == 4:
             if npc and getattr(npc, 'name', '') == "Priest":
                 npc.set_dialogue([
-                    "I see you've started your work, Hugo.",
-                    "But the night is coming, and the dead are restless.",
-                    "You must survive the night shift. Good luck."
+                    "PRIEST: I see you've started your work, Hugo.",
+                    "PRIEST: But the night is coming, and the dead are restless.",
+                    "PRIEST: You must survive the night shift. Good luck.",
+                    "PRIEST: Fate of the village is in your hands, protect us..."
                 ])
                 if is_talking:
                     self.game_data["priest_contacted"] = True
                 
                 if not is_talking and self.game_data.get("priest_contacted"):
-                    self.quest_step = 4
+                    self.quest_step = 5
                     self.update_gui_quest("Night Shift", "Go to the cemetery and survive (Right click).")
 
-        # 5. PREŽITIE NOCI
-        elif self.quest_step == 4:
-            # Ak noc skončila (night_mode je False a timer je na nule)
+        # 6. PREŽITIE NOCI
+        elif self.quest_step == 5:
             if self.game_data.get("night_mode") == False and self.game_data.get("night_finished") == True:
-                self.quest_step = 5
+                self.quest_step = 6
+                self.update_gui_quest("Day Finished", "Monday is over. Rest now.")
                 self.next_day_transition()
 
 
