@@ -697,7 +697,7 @@ def spustit_hru(screen):
     # saturday_manager = Saturday(screen, player, gui, game_data)
     # sunday_manager = Sunday(screen, player, gui, game_data)
 
-    current_day_manager = friday_manager
+    current_day_manager = monday_manager
     player.day = "Monday"
 
     game_data["night_mode"] = False
@@ -730,6 +730,7 @@ def spustit_hru(screen):
         if current_day_manager.day_finished:
             if player.day == "Monday" and game_data.get("night_finished"):
                 player.day = "Tuesday"
+                player.health = 100
                 current_day_manager = tuesday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
@@ -737,6 +738,7 @@ def spustit_hru(screen):
 
             elif player.day == "Tuesday" and game_data.get("night_finished"):
                 player.day = "Wednesday"
+                player.health = 100
                 current_day_manager = wednesday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
@@ -744,6 +746,7 @@ def spustit_hru(screen):
 
             elif player.day == "Wednesday" and game_data.get("night_finished"):
                 player.day = "Thursday"
+                player.health = 100
                 current_day_manager = thursday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
@@ -751,6 +754,7 @@ def spustit_hru(screen):
 
             elif player.day == "Thursday" and game_data.get("night_finished"):
                 player.day = "Friday"
+                player.health = 100
                 current_day_manager = friday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
