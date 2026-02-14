@@ -25,8 +25,8 @@ class GUI:
         self.shop_items = [
             {"name": "Health Potion", "price": 100, "type": "consumable", "desc": "+20 HP"},
             {"name": "Steel Shovel", "price": 150, "type": "upgrade", "desc": "Dig faster"},
-            {"name": "Stamina Boots", "price": 400, "type": "upgrade", "desc": "+20% Speed"},
-            {"name": "Money Bag", "price": 600, "type": "upgrade", "desc": "+10% Income"},
+            {"name": "Vitality Pills", "price": 1000, "type": "upgrade", "desc": "+20% Speed"},
+            {"name": "Money Bag", "price": 900, "type": "upgrade", "desc": "+10% Income"},
             {"name": "Shotgun", "price": 1500, "type": "weapon", "desc": "More damage"},
             {"name": "Holy hand grenade", "price": 1000, "type": "consumable", "desc": "Holy FU*K"},
         ]

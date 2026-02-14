@@ -28,6 +28,7 @@ from gamedays import Friday
 pygame.mixer.init()
 current_track = None
 
+
 # --- DÔLEŽITÉ: IMPORT ESC MENU ---
 from EscMenu import EscMenu
 
@@ -304,6 +305,10 @@ def spustit_hru(screen):
         "dig_cooldown": 2000, # 2 sekundy pauza medzi kopaním (v milisekundách)
         "gameday": 1,
         "night_finished": False, 
+
+        #Multipliers
+        "money_multiplier": 1,
+        "strength_multiplier": 1,
     }
 
     def setup_map(map_name):
@@ -706,7 +711,6 @@ def spustit_hru(screen):
 
     current_day_manager.start(setup_map)
 
-
     # --- HERNÁ SLUČKA ---
     running = True
     game_over = False
@@ -919,7 +923,7 @@ def spustit_hru(screen):
 
                             if reward > 0:
                                 if not hasattr(player, 'money'): player.money = 0
-                                player.money += reward
+                                player.money += reward * game_data["money_multiplier"]
 
                                 gx = (player.rect.centerx // TILE_SIZE) * TILE_SIZE 
                                 gy = (player.rect.bottom // TILE_SIZE) * TILE_SIZE 
@@ -942,6 +946,20 @@ def spustit_hru(screen):
                             gui.inventory.remove("Health Potion")
                         else:
                             print("Player health is full!")
+
+                    had_pills = False
+                    if selected_item == "Vitality Pills":
+                        game_data["strength_multiplier"] = 1.5
+                        had_pills = True
+                        print("Player damage is now reduced by 1.5")
+                        gui.inventory.remove("Vitality Pills")
+
+                    had_moneybag = False
+                    if selected_item == "Money Bag" and not had_moneybag:
+                        game_data["money_multiplier"] = 2
+                        had_moneybag = True
+                        print("Player coins are now multiplied by 2")
+                        gui.inventory.remove("Money Bag")
 
                     if selected_item == "Holy hand grenade":
                         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -1007,7 +1025,7 @@ def spustit_hru(screen):
                 if not hasattr(player, 'last_damage_time'): player.last_damage_time = 0
                 
                 if current_time - player.last_damage_time >= 1000 and not game_over:
-                    player.health -= enemy.damage
+                    player.health -= (enemy.damage)/game_data["strength_multiplier"]
                     player.last_damage_time = current_time
                     print("HP:", player.health)
                     if player.health <= 0:
@@ -1026,7 +1044,7 @@ def spustit_hru(screen):
                 current_time = pygame.time.get_ticks()
                 if not hasattr(player, 'last_damage_time'): player.last_damage_time = 0
                 if current_time - player.last_damage_time >= 500:
-                    player.health -= arrow.damage
+                    player.health -= (arrow.damage)/game_data["strength_multiplier"]
                     player.last_damage_time = current_time
                     if player.health <= 0: game_over = True
                 game_data["arrows"].remove(arrow)
