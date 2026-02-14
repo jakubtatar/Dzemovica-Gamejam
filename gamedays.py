@@ -197,8 +197,15 @@ class Tuesday:
                     self.quest_step = 3
                     self.update_gui_quest("Explore", "Visit the local village store.")
 
-        # 4. KONIEC DŇA
+        # 4. Navsteva obchodu
         elif self.quest_step == 3:
             if current_map == "store":
-                self.day_finished = True
-                print("Tuesday finished!")
+                if npc and getattr(npc, 'name', '') == "Shopkeeper":
+                    npc.set_dialogue([
+                        "Welcome to Zabkas Hugo!",
+                    ])
+                    
+                    if not is_talking and self.game_data.get("salary_received"):
+                        self.player.money += 200
+                        self.quest_step = 4
+                        self.update_gui_quest("New tools", "Buy something from store.")
