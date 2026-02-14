@@ -17,6 +17,7 @@ from GhostEnemy import GhostEnemy, SkeletonArcher, GhoulTank
 
 from gamedays import Monday
 from gamedays import Tuesday
+from gamedays import Wednesday
 
 pygame.mixer.init()
 current_track = None
@@ -421,6 +422,7 @@ def spustit_hru(screen):
                  priest_dialog_img)
 
             game_data["npc"] = priest_npc
+            priest_npc.map_id = "village"
 
             game_data["map_objects"].append({
                 "rect": priest_npc.rect,
@@ -544,6 +546,7 @@ def spustit_hru(screen):
                             barman_dialog_img)
             barman_npc.name = "Barman"
             game_data["npc"] = barman_npc
+            barman_npc.map_id = "taverna"
 
             game_data["map_objects"].append({
                 "rect": barman_npc.rect,
@@ -574,6 +577,7 @@ def spustit_hru(screen):
                             shopkeeper_dialog_img)
             shopkeeper_npc.name = "Shopkeeper"
             game_data["npc"] = shopkeeper_npc
+            shopkeeper_npc.map_id = "store"
 
             game_data["map_objects"].append({
                 "rect": shopkeeper_npc.rect,
@@ -628,6 +632,7 @@ def spustit_hru(screen):
 
     monday_manager = Monday(screen, player, gui, game_data)
     tuesday_manager = Tuesday(screen, player, gui, game_data)
+    wednesday_manager = Wednesday(screen, player, gui, game_data)
 
     current_day_manager = monday_manager
     player.day = "Monday"
@@ -663,6 +668,13 @@ def spustit_hru(screen):
             if player.day == "Monday" and game_data.get("night_finished"):
                 player.day = "Tuesday"
                 current_day_manager = tuesday_manager
+                current_day_manager.start(setup_map)
+                game_data["night_mode"] = False
+                game_data["night_finished"] = False
+
+            elif player.day == "Tuesday" and game_data.get("night_finished"):
+                player.day = "Wednesday"
+                current_day_manager = wednesday_manager
                 current_day_manager.start(setup_map)
                 game_data["night_mode"] = False
                 game_data["night_finished"] = False
@@ -944,11 +956,13 @@ def spustit_hru(screen):
 
         # --- NPC INTERACT TEXT ---
         npc = game_data.get("npc")
-        if npc and player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
-            interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
-            interact_text = interact_font.render("Press E", True, (255, 255, 0))
-            text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
-            screen.blit(interact_text, camera.apply(text_rect))
+        c_map = game_data.get("current_map")
+        if npc and getattr(npc, 'map_id', None) == c_map:
+                    if player.rect.colliderect(npc.rect.inflate(80, 80)) and not dialogue_active:
+                        interact_font = pygame.font.Font("Resources/Fonts/upheavtt.ttf", 24)
+                        interact_text = interact_font.render("Press E", True, (255, 255, 0))
+                        text_rect = interact_text.get_rect(center=(npc.rect.centerx, npc.rect.top - 20))
+                        screen.blit(interact_text, camera.apply(text_rect))
 
         if dialogue_active:
             npc = game_data.get("npc")
