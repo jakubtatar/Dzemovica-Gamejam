@@ -180,6 +180,7 @@ def spustit_hru(screen):
         object_bottleshelf_img = pygame.image.load(r"Resources/Objects/Object_BottleShelf.png").convert_alpha()
         object_barchair_img = pygame.image.load(r"Resources/Objects/Object_BarChair.png").convert_alpha()
         object_counter_img = pygame.image.load(r"Resources/Objects/Object_Counter.png").convert_alpha()
+        object_bartable_img = pygame.image.load(r"Resources/Objects/Object_Bartable.png").convert_alpha()        
 
         # --- NOVÝ OBRÁZOK DUCHA ---
         ghost_img = pygame.image.load(r"Resources/NPCs/Ghost_Front1.png").convert_alpha()
@@ -232,7 +233,9 @@ def spustit_hru(screen):
 
     #nabytok
     object_bottleshelf_img = pygame.transform.scale(object_bottleshelf_img, (TILE_SIZE *4, TILE_SIZE *4))
+    object_barchair_img = pygame.transform.scale(object_barchair_img, (TILE_SIZE *1.5, TILE_SIZE *1.5))
     object_counter_img = pygame.transform.scale(object_counter_img, (TILE_SIZE *1.5, TILE_SIZE *1.5))
+    object_bartable_img = pygame.transform.scale(object_bartable_img, (TILE_SIZE *3, TILE_SIZE *3))
 
     gravestone_images = load_images_from_folder("Resources/Gravestones", TILE_SIZE)
 
@@ -474,6 +477,36 @@ def spustit_hru(screen):
             game_data["map_objects"].append({
                 "rect": pygame.Rect(625, 225, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
                 "image": object_counter_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(625, 275, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_barchair_img,
+                "collidable": False
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(550, 275, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_barchair_img,
+                "collidable": False
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(475, 275, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_barchair_img,
+                "collidable": False
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(400, 275, TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+                "image": object_barchair_img,
+                "collidable": False
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(100, 300, TILE_SIZE * 3, TILE_SIZE * 3),
+                "image": object_bartable_img,
+                "collidable": True
+            })
+            game_data["map_objects"].append({
+                "rect": pygame.Rect(100, 100, TILE_SIZE * 3, TILE_SIZE * 3),
+                "image": object_bartable_img,
                 "collidable": True
             })
 
