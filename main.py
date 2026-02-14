@@ -392,6 +392,8 @@ def spustit_hru(screen):
                 "collidable": False,
                 "npc_ref": priest_npc
             })
+            priest_npc.name = "Priest"
+
 
         elif map_name == "house":
             w, c = maps_manager.load_map(r"Resources/Bitmaps/house.txt", TILE_SIZE)
@@ -553,6 +555,7 @@ def spustit_hru(screen):
                         if npc and player.rect.colliderect(npc.rect.inflate(40, 40)):
                             dialogue_active = True
                             dialogue_index = 0
+                            game_data["dialogue_active"] = True # Pridaj toto!
 
 
             if event.type == pygame.MOUSEBUTTONDOWN: 
@@ -561,6 +564,7 @@ def spustit_hru(screen):
                     npc = game_data.get("npc")
                     if dialogue_index >= len(npc.dialogue_lines):
                         dialogue_active = False
+                        game_data["dialogue_active"] = False # Pridaj toto!
                     continue
 
                 if event.button == 1 and not game_over: 
@@ -640,7 +644,7 @@ def spustit_hru(screen):
                             print("Tu sa kopať nedá.")
 
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
-                elif event.button == 3 and not game_over: 
+                elif (event.button == 3 and not game_over) and game_data["current_map"] == "cmitermap": 
                    if not game_data["night_mode"]:
                     game_data["night_mode"] = True
                     game_data["night_timer"] = 60 * 60  # 60 sekúnd pri 60 FPS
