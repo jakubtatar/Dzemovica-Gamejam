@@ -243,6 +243,11 @@ def spustit_hru(screen):
     priest_dialog_img = pygame.image.load("Resources/NPCs/Priest_Front1.png").convert_alpha()
     priest_dialog_img = pygame.transform.scale(priest_dialog_img, (200, 350))
 
+    shopkeeper__img = pygame.image.load("Resources/NPCs/Shopkeeper_Front1.png").convert_alpha()
+    shopkeeper__img = pygame.transform.scale(shopkeeper__img, (50, 100))
+
+    shopkeeper_dialog_img = pygame.image.load("Resources/NPCs/Shopkeeper_Front1.png").convert_alpha()
+    shopkeeper_dialog_img = pygame.transform.scale(shopkeeper__img, (200, 350))
 
     # --- SETUP MAPY ---
     game_data = {
@@ -470,9 +475,7 @@ def spustit_hru(screen):
             # V setup_map pod map_name == "taverna"
             barman_npc = NPC(barman_x, barman_y, barman_width, barman_height, 
                             "Resources/NPCs/Barman_Front1.png", 
-                            ["Vitaj Hugo! Vyzeráš hrozne.", 
-                            "Tu máš pivo na domáci účet.", 
-                            "Kňaz ťa hľadal, vraj máš prácu na cintoríne."],
+                            ["Wanna something healthy to drink?"],
                             barman_dialog_img)
             barman_npc.name = "Barman" # Pridané meno pre questy
             game_data["npc"] = barman_npc
@@ -494,6 +497,24 @@ def spustit_hru(screen):
                 "rect": pygame.Rect(200, 400, TILE_SIZE*3, TILE_SIZE),
                 "target": "village",
                 "spawn": (1700, 1000)
+            })
+
+            shopkeeper_x, shopkeeper_y = 400, 150
+            shopkeeper_width, shopkeeper_height = 60, 100
+
+            # V setup_map pod map_name == "taverna"
+            shopkeeper_npc = NPC(shopkeeper_x, shopkeeper_y, shopkeeper_width, shopkeeper_height, 
+                            "Resources/NPCs/Shopkeeper_Front1.png", 
+                            ["Hello! Welcome to Zabkas!"],
+                            shopkeeper_dialog_img)
+            shopkeeper_npc.name = "Shopkeeper" # Pridané meno pre questy
+            game_data["npc"] = shopkeeper_npc
+
+            game_data["map_objects"].append({
+                "rect": shopkeeper_npc.rect,
+                "image": shopkeeper__img,
+                "collidable": False,
+                "npc_ref": shopkeeper__img
             })
         
 
