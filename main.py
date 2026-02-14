@@ -14,6 +14,8 @@ from mapsmanager import MapsManager
 from item import Item
 from npc import NPC
 from GhostEnemy import GhostEnemy, SkeletonArcher, GhoulTank, Arrow, ShadowWraith
+from grenade import Grenade
+from grenade import Explosion
 
 from gamedays import Monday
 from gamedays import Tuesday
@@ -619,6 +621,9 @@ def spustit_hru(screen):
     setup_map("cmitermap")
     fade.fade_in()
 
+    active_grenades = []
+    explosions = []
+
     # Dialogy
     dialogue_active = False
     dialogue_index = 0
@@ -883,6 +888,20 @@ def spustit_hru(screen):
                         else:
                             print("Player health is full!")
 
+                    if selected_item == "Holy hand grenade":
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+    
+                        # Prepočet na svetové súradnice: Pozícia na monitore + offset kamery
+                        world_mouse_pos = (mouse_x + camera.offset.x, mouse_y + camera.offset.y)
+                        
+                        # Vytvorenie granátu (štart je stred hráča, cieľ je world_mouse_pos)
+                        new_grenade = Grenade(player.rect.center, world_mouse_pos)
+                        active_grenades.append(new_grenade)
+                        
+                        # Odstránenie z inventára
+                        if "Holy hand grenade" in gui.inventory:
+                            gui.inventory.remove("Holy hand grenade")
+
                 # PRAVÉ TLAČIDLO (Otváranie hrobov + Spawn nepriateľov)
                 elif (event.button == 3 and not game_over) and game_data["current_map"] == "cmitermap": 
                     if not game_data["night_mode"]:
@@ -897,6 +916,32 @@ def spustit_hru(screen):
 
             gui.handle_input(event)
 
+        for grenade in active_grenades[:]:
+            grenade.update()
+            
+            if grenade.exploded:
+                # 1. VYTVOR VIZUÁLNY VÝBUCH
+                explosions.append(Explosion(grenade.rect.centerx, grenade.rect.centery, grenade.explosion_radius))
+                
+                # 2. ZATRAS KAMEROU (intenzita 15)
+                camera.shake(15)
+                
+                # 3. POŠKODENIE NEPRIATEĽOV (tvoj existujúci kód)
+                for enemy in game_data["enemies"]:
+                    dist = math.hypot(enemy.rect.centerx - grenade.rect.centerx, 
+                                    enemy.rect.centery - grenade.rect.centery)
+                    if dist < grenade.explosion_radius:
+                        enemy.health -= 100 
+                
+                active_grenades.remove(grenade)
+
+        # --- UPDATE A DRAW VÝBUCHOV ---
+        for exp in explosions[:]:
+            exp.update()
+            if exp.finished:
+                explosions.remove(exp)
+
+        
         # --- UPDATE NEPRIATEĽOV ---
         for enemy in game_data["enemies"]:
             enemy.update(player, game_data) 
@@ -1125,6 +1170,9 @@ def spustit_hru(screen):
                 if "arrows" in game_data: game_data["arrows"].clear() # Vyčistíme aj šípy
                 for pit in game_data["grave_pits"]: 
                     pit['state'] = 'closed'
+
+        for exp in explosions:
+            exp.draw(screen, camera)
 
         gui.draw()
         fade.draw()
